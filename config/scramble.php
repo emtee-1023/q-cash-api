@@ -54,7 +54,7 @@ return [
     ],
 
     'ui' => [
-        'title' => null,
+        'title' => 'Q-Cash API Docs',
     ],
 
     /*

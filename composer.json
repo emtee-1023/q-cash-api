@@ -17,12 +17,17 @@
     "require": {
         "php": "^8.3",
         "dedoc/scramble": "^0.13.43",
+        "guzzlehttp/guzzle": "^7.15",
+        "guzzlehttp/promises": "^2.5.3",
+        "guzzlehttp/psr7": "^2.13.1",
         "laravel/framework": "^13.17",
+        "laravel/sanctum": "^4.0",
         "laravel/tinker": "^3.0",
         "markt/laravel-auth": "dev-main"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
+        "laravel/boost": "^2.9",
         "laravel/pail": "^1.2.5",
         "laravel/pao": "^1.0.6",
         "laravel/pint": "^1.27",
