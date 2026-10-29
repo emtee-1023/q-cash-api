@@ -1,0 +1,34 @@
+name: qcash-api
+
+services:
+  app:
+    image: ${QCASH_IMAGE:-qcash-api}:${QCASH_IMAGE_TAG:-latest}
+    init: true
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3005}:80"
+    env_file:
+      - .env
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_URL: ${APP_URL:-http://localhost:${APP_PORT:-3005}}
+      LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
+      DB_CONNECTION: ${DB_CONNECTION:-sqlite}
+      DB_DATABASE: ${DB_DATABASE:-/data/database.sqlite}
+      QCASH_ML_API_URL: ${QCASH_ML_API_URL:-}
+    volumes:
+      - qcash-storage:/var/www/html/storage
+      - qcash-database:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/up >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  qcash-storage:
+  qcash-database:
