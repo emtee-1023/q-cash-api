@@ -1,0 +1,631 @@
+
+Project q_cash {
+  database_type: 'PostgreSQL'
+  Note: '''
+    Q-Cash operational database.
+
+    MONEY CONVENTION:
+    All monetary values are BIGINT in minor currency units.
+    For KES, 100 minor units = KSh 1.00.
+    Example: KSh 100.50 = 10050.
+
+    RATE CONVENTION:
+    Percentage rates are stored as integer basis points.
+    100 basis points = 1%.
+    Example: 10% = 1000 basis points.
+
+    Authentication is managed by Markt/LaravelAuth.
+    The users table below is a reference only.
+    Do not create or recreate authentication tables.
+  '''
+}
+
+// =====================================================
+// EXISTING AUTHENTICATION TABLE — REFERENCE ONLY
+// =====================================================
+
+Table users {
+  id bigint [pk, increment, note: 'Existing Laravel users table. DO NOT recreate.']
+
+  phone_number varchar(30) [note: 'Managed by Markt/LaravelAuth']
+  phone_verified_at timestamp [note: 'Managed by Markt/LaravelAuth']
+  email varchar(255) [note: 'Existing nullable email column']
+
+  Note: 'Reference stub only. Preserve all existing columns and package migrations.'
+}
+
+// =====================================================
+// 1. BUSINESS MANAGEMENT
+// =====================================================
+
+Table businesses {
+  id bigint [pk, increment]
+  public_id uuid [not null, unique]
+
+  business_name varchar(255) [not null]
+  business_type varchar(100)
+  business_category varchar(100)
+  registration_number varchar(100)
+
+  phone_number varchar(30)
+  email varchar(255)
+
+  county varchar(100)
+  town varchar(100)
+  physical_address text
+
+  operating_since date
+
+  status varchar(30) [not null, default: 'pending',
+    note: 'pending, active, suspended, closed']
+
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp
+}
+
+Table business_users {
+  id bigint [pk, increment]
+  business_id bigint [not null]
+  user_id bigint [not null]
+
+  role varchar(30) [not null, default: 'owner',
+    note: 'owner, administrator, staff']
+
+  is_primary_contact boolean [not null, default: false]
+  status varchar(30) [not null, default: 'active']
+
+  created_at timestamp
+  updated_at timestamp
+
+  Indexes {
+    (business_id, user_id) [unique]
+    user_id
+  }
+}
+
+// =====================================================
+// 2. PAYMENT CHANNELS AND ACCOUNTS
+// =====================================================
+
+Table payment_accounts {
+  id bigint [pk, increment]
+  business_id bigint [not null]
+
+  provider varchar(50) [not null, note: 'e.g. Safaricom']
+  channel_type varchar(50) [not null, note: 'paybill, till, bank']
+  account_number varchar(100) [not null]
+  account_reference varchar(150)
+
+  account_name varchar(255)
+  status varchar(30) [not null, default: 'pending']
+
+  verified_at timestamp
+  metadata jsonb
+
+  created_at timestamp
+  updated_at timestamp
+
+  Indexes {
+    (provider, channel_type, account_number, account_reference) [unique]
+    business_id
+  }
+}
+
+// =====================================================
+// 3. RAW BUSINESS TRANSACTIONS
+// =====================================================
+
+Table transactions {
+  id bigint [pk, increment]
+  business_id bigint [not null]
+  payment_account_id bigint
+
+  provider varchar(50) [not null]
+  provider_transaction_id varchar(150) [not null]
+
+  transaction_type varchar(50)
+  direction varchar(20) [not null, note: 'inflow, outflow']
+
+  amount_minor bigint [not null, note: 'KES minor units; 100 = KSh 1.00']
+  currency varchar(3) [not null, default: 'KES']
+
+  transaction_time timestamp [not null]
+  provider_status varchar(30)
+
+  counterparty_reference varchar(150)
+  counterparty_name varchar(255)
+
+  raw_payload jsonb [note: 'Original provider payload. Preserve unchanged.']
+
+  ingested_at timestamp [not null]
+
+  created_at timestamp
+  updated_at timestamp
+
+  Indexes {
+    (provider, provider_transaction_id) [unique]
+    (business_id, transaction_time)
+    (payment_account_id, transaction_time)
+  }
+}
+
+// =====================================================
+// 4. TRANSACTION CLASSIFICATIONS
+// =====================================================
+
+Table transaction_classifications {
+  id bigint [pk, increment]
+  transaction_id bigint [not null]
+
+  classifier_version varchar(50) [not null]
+
+  category varchar(50) [not null,
+    note: 'sale, refund, reversal, capital_injection, internal_transfer, non_revenue, unknown']
+
+  revenue_eligible boolean [not null, default: false]
+
+  anomaly_status varchar(30) [not null, default: 'normal',
+    note: 'normal, flagged, requires_review']
+
+  confidence decimal(6,5)
+
+  reason_codes jsonb
+
+  is_current boolean [not null, default: true]
+
+  classified_at timestamp [not null]
+
+  created_at timestamp
+  updated_at timestamp
+
+  Indexes {
+    (transaction_id, classifier_version) [unique]
+    (transaction_id, is_current)
+  }
+}
+
+// PostgreSQL partial unique index required:
+// CREATE UNIQUE INDEX transaction_classifications_one_current
+// ON transaction_classifications (transaction_id)
+// WHERE is_current = TRUE;
+
+// =====================================================
+// 5. ML MODEL VERSIONING
+// =====================================================
+
+Table model_versions {
+  id bigint [pk, increment]
+
+  model_name varchar(100) [not null]
+  model_type varchar(50) [not null,
+    note: 'revenue_regressor, transaction_classifier, etc.']
+
+  version varchar(50) [not null]
+  artifact_uri varchar(500)
+
+  evaluation_metrics jsonb
+  training_data_description jsonb
+
+  trained_at timestamp
+  is_active boolean [not null, default: false]
+
+  created_at timestamp
+  updated_at timestamp
+
+  Indexes {
+    (model_name, version) [unique]
+  }
+}
+
+// =====================================================
+// 6. DECISION POLICIES
+// =====================================================
+
+Table decision_policies {
+  id bigint [pk, increment]
+
+  policy_name varchar(100) [not null]
+  version varchar(50) [not null]
+
+  scoring_weights jsonb [not null]
+  scoring_bands jsonb
+
+  advance_rules jsonb [not null]
+  repayment_rules jsonb [not null]
+  eligibility_rules jsonb
+
+  effective_from timestamp
+  effective_until timestamp
+
+  status varchar(30) [not null, default: 'draft',
+    note: 'draft, active, retired']
+
+  created_at timestamp
+  updated_at timestamp
+
+  Indexes {
+    (policy_name, version) [unique]
+  }
+}
+
+// =====================================================
+// 7. ERA ASSESSMENTS
+// =====================================================
+
+Table era_assessments {
+  id bigint [pk, increment]
+  public_id uuid [not null, unique]
+
+  business_id bigint [not null]
+
+  model_version_id bigint
+  decision_policy_id bigint
+
+  assessment_status varchar(30) [not null,
+    note: 'eligible, ineligible, insufficient_data, manual_review, failed']
+
+  assessment_date timestamp [not null]
+  forecast_period_days int [not null, default: 30]
+
+  predicted_revenue_minor bigint
+  reliability_score decimal(8,4)
+
+  recommended_advance_rate_bps int
+  recommended_advance_amount_minor bigint
+
+  recommended_recovery_rate_bps int
+  maximum_repayment_days int
+
+  score_breakdown jsonb
+  reason_codes jsonb
+  warnings jsonb
+
+  input_snapshot jsonb
+  output_snapshot jsonb
+
+  requested_by_user_id bigint
+
+  created_at timestamp
+  updated_at timestamp
+
+  Indexes {
+    (business_id, assessment_date)
+    model_version_id
+    decision_policy_id
+  }
+}
+
+// =====================================================
+// 8. FINANCING PARTNERS
+// =====================================================
+
+Table financing_partners {
+  id bigint [pk, increment]
+
+  name varchar(255) [not null]
+  partner_type varchar(50) [not null,
+    note: 'bank, financial_institution, other']
+
+  contact_email varchar(255)
+  contact_phone varchar(30)
+
+  status varchar(30) [not null, default: 'active']
+  integration_config jsonb
+
+  created_at timestamp
+  updated_at timestamp
+}
+
+// =====================================================
+// 9. ADVANCE OFFERS
+// =====================================================
+
+Table advance_offers {
+  id bigint [pk, increment]
+  public_id uuid [not null, unique]
+
+  assessment_id bigint [not null]
+  business_id bigint [not null]
+
+  offered_amount_minor bigint [not null]
+  fee_amount_minor bigint [not null, default: 0]
+  total_repayable_minor bigint [not null]
+
+  recovery_rate_bps int [not null]
+  maximum_repayment_days int [not null]
+
+  offer_terms jsonb [note: 'Snapshot of complete terms presented to business owner.']
+
+  status varchar(30) [not null, default: 'pending',
+    note: 'pending, accepted, rejected, expired, cancelled']
+
+  offered_at timestamp [not null]
+  expires_at timestamp
+  accepted_at timestamp
+  rejected_at timestamp
+
+  created_at timestamp
+  updated_at timestamp
+
+  Indexes {
+    assessment_id
+    (business_id, status)
+  }
+}
+
+// =====================================================
+// 10. ADVANCES
+// =====================================================
+
+Table advances {
+  id bigint [pk, increment]
+  public_id uuid [not null, unique]
+
+  offer_id bigint [not null, unique]
+  business_id bigint [not null]
+  financing_partner_id bigint
+
+  principal_amount_minor bigint [not null]
+  fee_amount_minor bigint [not null, default: 0]
+  total_repayable_minor bigint [not null]
+
+  amount_repaid_minor bigint [not null, default: 0]
+  outstanding_balance_minor bigint [not null]
+
+  recovery_rate_bps int [not null]
+  maximum_repayment_days int [not null]
+
+  approved_at timestamp
+  disbursed_at timestamp
+  repayment_started_at timestamp
+  due_at timestamp
+  settled_at timestamp
+
+  status varchar(30) [not null, default: 'pending',
+    note: 'pending, approved, disbursing, active, overdue, settled, defaulted, cancelled']
+
+  created_at timestamp
+  updated_at timestamp
+
+  Indexes {
+    (business_id, status)
+    financing_partner_id
+    due_at
+  }
+}
+
+// =====================================================
+// 11. DISBURSEMENTS
+// =====================================================
+
+Table disbursements {
+  id bigint [pk, increment]
+  advance_id bigint [not null]
+
+  provider varchar(50)
+  provider_reference varchar(150)
+
+  amount_minor bigint [not null]
+
+  status varchar(30) [not null, default: 'pending',
+    note: 'pending, processing, successful, failed, reversed']
+
+  requested_at timestamp
+  completed_at timestamp
+  failure_reason text
+
+  provider_response jsonb
+
+  created_at timestamp
+  updated_at timestamp
+
+  Indexes {
+    advance_id
+    provider_reference [unique]
+  }
+}
+
+// =====================================================
+// 12. REPAYMENT COLLECTIONS
+// =====================================================
+
+Table repayment_collections {
+  id bigint [pk, increment]
+  public_id uuid [not null, unique]
+
+  business_id bigint [not null]
+  source_transaction_id bigint
+
+  collection_method varchar(50) [not null,
+    note: 'revenue_deduction, manual_payment, fallback']
+
+  provider varchar(50)
+  provider_reference varchar(150)
+
+  amount_minor bigint [not null]
+  currency varchar(3) [not null, default: 'KES']
+
+  status varchar(30) [not null, default: 'pending',
+    note: 'pending, processing, successful, failed, reversed']
+
+  idempotency_key varchar(150) [not null, unique]
+
+  collected_at timestamp
+  processed_at timestamp
+
+  provider_response jsonb
+
+  created_at timestamp
+  updated_at timestamp
+
+  Indexes {
+    (business_id, collected_at)
+    source_transaction_id
+    provider_reference
+  }
+}
+
+// =====================================================
+// 13. REPAYMENT ALLOCATIONS
+// =====================================================
+
+Table repayment_allocations {
+  id bigint [pk, increment]
+
+  repayment_collection_id bigint [not null]
+  advance_id bigint [not null]
+
+  amount_minor bigint [not null]
+
+  created_at timestamp
+  updated_at timestamp
+
+  Indexes {
+    (repayment_collection_id, advance_id) [unique]
+    advance_id
+  }
+}
+
+// =====================================================
+// 14. ADVANCE FINANCIAL LEDGER
+// =====================================================
+
+Table advance_ledger_entries {
+  id bigint [pk, increment]
+
+  advance_id bigint [not null]
+
+  repayment_allocation_id bigint
+  disbursement_id bigint
+
+  entry_type varchar(40) [not null,
+    note: 'principal_disbursed, fee_assessed, repayment, adjustment, reversal']
+
+  amount_minor bigint [not null,
+    note: 'Integer minor units. Use documented debit/credit sign convention.']
+
+  description text
+  reference varchar(150)
+
+  created_at timestamp
+
+  Indexes {
+    advance_id
+    repayment_allocation_id
+    disbursement_id
+  }
+}
+
+// =====================================================
+// 15. HISTORICAL REPAYMENT TERMS
+// =====================================================
+
+Table advance_repayment_terms {
+  id bigint [pk, increment]
+  advance_id bigint [not null]
+
+  recovery_rate_bps int [not null]
+  maximum_repayment_days int [not null]
+
+  fallback_terms jsonb
+
+  effective_from timestamp [not null]
+  effective_until timestamp
+
+  adjustment_reason text
+  policy_version varchar(50)
+
+  changed_by_user_id bigint
+
+  created_at timestamp
+  updated_at timestamp
+
+  Indexes {
+    (advance_id, effective_from)
+    changed_by_user_id
+  }
+}
+
+// =====================================================
+// 16. PROVIDER WEBHOOK EVENTS
+// =====================================================
+
+Table provider_webhook_events {
+  id bigint [pk, increment]
+
+  provider varchar(50) [not null]
+  external_event_id varchar(150) [not null]
+
+  event_type varchar(100)
+  payload jsonb [not null]
+
+  processing_status varchar(30) [not null, default: 'pending',
+    note: 'pending, processing, processed, failed']
+
+  processing_error text
+
+  received_at timestamp [not null]
+  processed_at timestamp
+
+  created_at timestamp
+  updated_at timestamp
+
+  Indexes {
+    (provider, external_event_id) [unique]
+    processing_status
+  }
+}
+
+// =====================================================
+// RELATIONSHIPS
+// =====================================================
+
+// Business management
+Ref: business_users.business_id > businesses.id
+Ref: business_users.user_id > users.id
+
+// Payment accounts
+Ref: payment_accounts.business_id > businesses.id
+
+// Transactions
+Ref: transactions.business_id > businesses.id
+Ref: transactions.payment_account_id > payment_accounts.id
+
+// Transaction classification
+Ref: transaction_classifications.transaction_id > transactions.id
+
+// Assessments
+Ref: era_assessments.business_id > businesses.id
+Ref: era_assessments.model_version_id > model_versions.id
+Ref: era_assessments.decision_policy_id > decision_policies.id
+Ref: era_assessments.requested_by_user_id > users.id
+
+// Offers
+Ref: advance_offers.assessment_id > era_assessments.id
+Ref: advance_offers.business_id > businesses.id
+
+// Advances
+Ref: advances.offer_id > advance_offers.id
+Ref: advances.business_id > businesses.id
+Ref: advances.financing_partner_id > financing_partners.id
+
+// Disbursements
+Ref: disbursements.advance_id > advances.id
+
+// Repayment collections
+Ref: repayment_collections.business_id > businesses.id
+Ref: repayment_collections.source_transaction_id > transactions.id
+
+// Repayment allocations
+Ref: repayment_allocations.repayment_collection_id > repayment_collections.id
+Ref: repayment_allocations.advance_id > advances.id
+
+// Financial ledger
+Ref: advance_ledger_entries.advance_id > advances.id
+Ref: advance_ledger_entries.repayment_allocation_id > repayment_allocations.id
+Ref: advance_ledger_entries.disbursement_id > disbursements.id
+
+// Repayment terms
+Ref: advance_repayment_terms.advance_id > advances.id
+Ref: advance_repayment_terms.changed_by_user_id > users.id

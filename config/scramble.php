@@ -1,6 +1,7 @@
 <?php
 
 use Dedoc\Scramble\Http\Middleware\RestrictedDocsAccess;
+use Dedoc\Scramble\SecurityDocumentation\MiddlewareAuthSecurityStrategy;
 
 return [
     /*
@@ -50,7 +51,10 @@ return [
         /*
          * Description rendered on the home page of the API documentation (`/docs/api`).
          */
-        'description' => '',
+        'description' => 'Q-Cash Early Revenue Access (ERA) API for MSMEs in Kenya. '
+            .'Manages businesses, payment accounts, raw transactions, ERA assessments, advance offers, '
+            .'disbursements and hybrid repayments. All monetary amounts are expressed as integer minor '
+            .'currency units (KES cents) and percentage rates as integer basis points.',
     ],
 
     'ui' => [
@@ -75,7 +79,7 @@ return [
             'view' => 'scramble::docs',
             'theme' => 'dark',
             'hideTryIt' => false,
-            'hideSchemas' => false,
+            'hideSchemas' => true,
             'logo' => '',
             'tryItCredentialsPolicy' => 'include',
             'layout' => 'responsive',
@@ -178,5 +182,5 @@ return [
      * ],
      */
     // 'security_strategy' => \Dedoc\Scramble\SecurityDocumentation\MiddlewareAuthSecurityStrategy::class,
-    'security_strategy' => null,
+    'security_strategy' => MiddlewareAuthSecurityStrategy::class,
 ];
