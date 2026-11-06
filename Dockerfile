@@ -43,7 +43,7 @@ RUN apt-get update \
         nginx \
         supervisor \
         libpq-dev \
-    && docker-php-ext-install pdo pdo_pgsql pgsql
+    && docker-php-ext-install pdo pdo_pgsql pgsql \
     && rm -rf /var/lib/apt/lists/* \
         /etc/nginx/sites-enabled/default \
         /var/www/html
