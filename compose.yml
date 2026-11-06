@@ -21,9 +21,6 @@ services:
             DB_CONNECTION: ${DB_CONNECTION:-sqlite}
             DB_DATABASE: ${DB_DATABASE:-/data/database.sqlite}
             QCASH_ML_API_URL: ${QCASH_ML_API_URL:-}
-        networks: # <--- ADD THIS BLOCK
-            - default # Keeps your internal app volumes/setups working
-            - legacy_bridge # Connects your app to the default bridge network
         volumes:
             - qcash-storage:/var/www/html/storage
             - qcash-database:/data
@@ -39,12 +36,6 @@ services:
             timeout: 5s
             retries: 3
             start_period: 30s
-
-networks: # <--- ADD THIS BLOCK AT THE VERY BOTTOM
-    default: # Automatically maps your default qcash-api stack network
-    legacy_bridge:
-        external: true
-        name: bridge # Maps to Docker's system-wide default bridge network
 
 volumes:
     qcash-storage:
