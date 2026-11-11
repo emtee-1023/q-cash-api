@@ -18,7 +18,7 @@ class BusinessFactory extends Factory
             'business_type' => fake()->randomElement(['retail', 'wholesale', 'service']),
             'business_category' => fake()->randomElement(['shop', 'food', 'transport']),
             'registration_number' => fake()->optional()->numerify('REG-#####'),
-            'phone_number' => '+254'.fake()->numerify('7########'),
+            'phone_number' => '254'.fake()->numerify('7########'),
             'email' => fake()->unique()->safeEmail(),
             'county' => fake()->city(),
             'town' => fake()->city(),

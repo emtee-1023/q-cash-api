@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\Enums\PartnerType;
+use App\Support\PhoneNumber;
 use Database\Factories\FinancingPartnerFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -21,6 +23,15 @@ class FinancingPartner extends Model
             'partner_type' => PartnerType::class,
             'integration_config' => 'array',
         ];
+    }
+
+    protected function contactPhone(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => $value === null || $value === ''
+                ? null
+                : PhoneNumber::normalize($value),
+        );
     }
 
     /**

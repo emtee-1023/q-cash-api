@@ -2,6 +2,7 @@
 
 namespace App\Services\Sms;
 
+use App\Support\PhoneNumber;
 use Illuminate\Support\Facades\Http;
 use Markt\LaravelAuth\Contracts\SmsSender;
 use RuntimeException;
@@ -17,7 +18,7 @@ class AfricaTalkingSmsSender implements SmsSender
         $payload = [
             'username' => $username,
             'message' => $message,
-            'to' => $phoneNumber,
+            'to' => '+'.PhoneNumber::normalize($phoneNumber),
         ];
 
         $response = Http::asForm()

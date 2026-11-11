@@ -17,7 +17,7 @@ class FinancingPartnerFactory extends Factory
             'name' => fake()->company(),
             'partner_type' => PartnerType::Bank->value,
             'contact_email' => fake()->safeEmail(),
-            'contact_phone' => '+254'.fake()->numerify('7########'),
+            'contact_phone' => '254'.fake()->numerify('7########'),
             'status' => 'active',
             'integration_config' => [],
         ];

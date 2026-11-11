@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\IdentificationType;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -28,9 +29,12 @@ class UserFactory extends Factory
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
-            'phone_number' => '+254'.fake()->unique()->numerify('7########'),
+            'phone_number' => '254'.fake()->unique()->numerify('7########'),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'id_type' => IdentificationType::KenyanNationalId->value,
+            'identification_number' => fake()->unique()->numerify('########'),
+            'date_of_birth' => fake()->dateTimeBetween('-60 years', '-18 years')->format('Y-m-d'),
         ];
     }
 

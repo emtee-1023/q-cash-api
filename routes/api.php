@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\OfferController;
 use App\Http\Controllers\Api\PaymentAccountController;
 use App\Http\Controllers\Api\RepaymentController;
 use App\Http\Controllers\Api\TransactionController;
+use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Test;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -17,6 +18,8 @@ Route::get('/user', function (Request $request) {
 
 Route::get('/test', [Test::class, 'test']);
 Route::post('/testsms', [Test::class, 'sendSms']);
+
+Route::post('auth/register', [RegisterController::class, 'register']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('businesses', BusinessController::class)->only(['index', 'store', 'show']);
