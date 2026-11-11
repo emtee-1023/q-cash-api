@@ -20,6 +20,14 @@ class BusinessPolicy
             ->exists();
     }
 
+    public function manageProfile(User $user, Business $business): bool
+    {
+        return $business->businessUsers()
+            ->where('user_id', $user->id)
+            ->whereIn('role', ['owner', 'administrator'])
+            ->exists();
+    }
+
     public function manageFinance(User $user, Business $business): bool
     {
         return $this->update($user, $business);

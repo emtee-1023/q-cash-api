@@ -6,10 +6,12 @@ use App\Enums\BusinessKycStatus;
 use App\Enums\BusinessStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateBusinessKycStatusRequest;
+use App\Http\Requests\Admin\UpdateBusinessRequest;
 use App\Http\Requests\Admin\UpdateBusinessStatusRequest;
 use App\Http\Resources\AdminBusinessDetailResource;
 use App\Http\Resources\BusinessResource;
 use App\Models\Business;
+use App\Services\Businesses\UpdateBusinessProfile;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -51,6 +53,17 @@ class BusinessController extends Controller
     public function show(Business $business): AdminBusinessDetailResource
     {
         return new AdminBusinessDetailResource($this->loadBusiness($business));
+    }
+
+    public function update(
+        UpdateBusinessRequest $request,
+        Business $business,
+        UpdateBusinessProfile $profileUpdater,
+    ): AdminBusinessDetailResource {
+        $profileUpdater->handle($business, $request->validated());
+
+        return (new AdminBusinessDetailResource($this->loadBusiness($business)))
+            ->additional(['message' => 'Business updated.']);
     }
 
     public function updateStatus(

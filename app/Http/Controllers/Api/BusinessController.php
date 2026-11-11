@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreBusinessRequest;
+use App\Http\Requests\UpdateBusinessRequest;
 use App\Http\Resources\BusinessDetailResource;
 use App\Http\Resources\BusinessResource;
 use App\Models\Business;
 use App\Models\County;
 use App\Models\SubCounty;
+use App\Services\Businesses\UpdateBusinessProfile;
 use Illuminate\Http\Request;
 
 /**
@@ -73,6 +75,21 @@ class BusinessController extends Controller
         return (new BusinessDetailResource($business))
             ->response()
             ->setStatusCode(201);
+    }
+
+    public function update(
+        UpdateBusinessRequest $request,
+        Business $business,
+        UpdateBusinessProfile $profileUpdater,
+    ): BusinessDetailResource {
+        $this->authorize('manageProfile', $business);
+
+        $profileUpdater->handle($business, $request->validated());
+
+        $business->load(['businessType', 'countyLocation', 'subCounty', 'ward']);
+
+        return (new BusinessDetailResource($business))
+            ->additional(['message' => 'Business updated.']);
     }
 
     /**

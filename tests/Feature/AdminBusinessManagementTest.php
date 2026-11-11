@@ -3,7 +3,11 @@
 use App\Enums\BusinessKycStatus;
 use App\Enums\BusinessStatus;
 use App\Models\Business;
+use App\Models\BusinessType;
+use App\Models\County;
+use App\Models\SubCounty;
 use App\Models\User;
+use App\Models\Ward;
 use App\Support\AdminToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -36,6 +40,19 @@ test('admins can view business details', function () {
         ->assertOk()
         ->assertJsonPath('data.business_name', $business->business_name)
         ->assertJsonPath('data.collection_account_number', $business->collection_account_number);
+});
+
+test('admins can update business names', function () {
+    $admin = User::factory()->admin()->create();
+    $business = Business::factory()->create(['business_name' => 'Old Name']);
+
+    $this->withToken(adminBusinessToken($admin))
+        ->patchJson("/api/admin/businesses/{$business->id}", [
+            'business_name' => 'Admin Renamed',
+        ])->assertOk()
+        ->assertJsonPath('data.business_name', 'Admin Renamed');
+
+    expect($business->refresh()->business_name)->toBe('Admin Renamed');
 });
 
 test('admins can update business status', function () {
@@ -84,4 +101,81 @@ test('business status updates reject invalid values', function () {
             'status' => 'invalid-status',
         ])->assertStatus(422)
         ->assertJsonValidationErrors('status');
+});
+
+test('admins can update business types', function () {
+    $admin = User::factory()->admin()->create();
+    $type = BusinessType::factory()->create();
+    $business = Business::factory()->create();
+
+    $this->withToken(adminBusinessToken($admin))
+        ->patchJson("/api/admin/businesses/{$business->id}", [
+            'business_type_id' => $type->id,
+        ])->assertOk()
+        ->assertJsonPath('data.business_type_id', $type->id);
+
+    expect($business->refresh()->business_type_id)->toBe($type->id);
+});
+
+test('admins can update full business details including registration number', function () {
+    $admin = User::factory()->admin()->create();
+    $type = BusinessType::factory()->create();
+    $county = County::factory()->create();
+    $subCounty = SubCounty::factory()->create(['county_id' => $county->id]);
+    $ward = Ward::factory()->create(['sub_county_id' => $subCounty->id]);
+    $business = Business::factory()->create(['has_physical_location' => false]);
+
+    $this->withToken(adminBusinessToken($admin))
+        ->patchJson("/api/admin/businesses/{$business->id}", [
+            'business_name' => 'Admin Updated Business',
+            'business_type_id' => $type->id,
+            'registration_number' => 'REG-ADMIN-001',
+            'phone_number' => '0712345678',
+            'email' => 'admin-updated@example.com',
+            'has_physical_location' => true,
+            'county_id' => $county->id,
+            'sub_county_id' => $subCounty->id,
+            'ward_id' => $ward->id,
+            'physical_address' => '12 Market Street',
+        ])->assertOk()
+        ->assertJsonPath('data.business_name', 'Admin Updated Business')
+        ->assertJsonPath('data.business_type_id', $type->id)
+        ->assertJsonPath('data.registration_number', 'REG-ADMIN-001')
+        ->assertJsonPath('data.phone_number', '254712345678')
+        ->assertJsonPath('data.email', 'admin-updated@example.com')
+        ->assertJsonPath('data.county_id', $county->id)
+        ->assertJsonPath('data.sub_county_id', $subCounty->id)
+        ->assertJsonPath('data.ward_id', $ward->id);
+
+    $business->refresh();
+
+    expect($business->business_name)->toBe('Admin Updated Business');
+    expect($business->business_type_id)->toBe($type->id);
+    expect($business->registration_number)->toBe('REG-ADMIN-001');
+    expect($business->phone_number)->toBe('254712345678');
+    expect($business->email)->toBe('admin-updated@example.com');
+    expect($business->county_id)->toBe($county->id);
+    expect($business->sub_county_id)->toBe($subCounty->id);
+    expect($business->ward_id)->toBe($ward->id);
+});
+
+test('admin details patch does not change status or kyc status', function () {
+    $admin = User::factory()->admin()->create();
+    $business = Business::factory()->create([
+        'status' => BusinessStatus::Pending->value,
+        'kyc_status' => BusinessKycStatus::Unverified->value,
+    ]);
+
+    $this->withToken(adminBusinessToken($admin))
+        ->patchJson("/api/admin/businesses/{$business->id}", [
+            'business_name' => 'Details Only',
+            'status' => BusinessStatus::Suspended->value,
+            'kyc_status' => BusinessKycStatus::Verified->value,
+        ])->assertOk();
+
+    $business->refresh();
+
+    expect($business->business_name)->toBe('Details Only');
+    expect($business->status)->toBe(BusinessStatus::Pending);
+    expect($business->kyc_status)->toBe(BusinessKycStatus::Unverified);
 });
