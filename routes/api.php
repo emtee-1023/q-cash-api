@@ -50,6 +50,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::get('businesses', [AdminBusinessController::class, 'index'])->name('businesses.index');
         Route::get('businesses/{business}', [AdminBusinessController::class, 'show'])->name('businesses.show');
+        Route::patch('businesses/{business}', [AdminBusinessController::class, 'update'])->name('businesses.update');
         Route::patch('businesses/{business}/status', [AdminBusinessController::class, 'updateStatus'])
             ->name('businesses.status');
         Route::patch('businesses/{business}/kyc-status', [AdminBusinessController::class, 'updateKycStatus'])
@@ -71,6 +72,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('locations/sub-counties/{subCounty}/wards', [LocationController::class, 'wards']);
 
     Route::apiResource('businesses', BusinessController::class)->only(['index', 'store', 'show']);
+    Route::patch('businesses/{business}', [BusinessController::class, 'update'])->name('businesses.update');
 
     Route::post('businesses/{business}/payment-accounts', [PaymentAccountController::class, 'store']);
     Route::get('businesses/{business}/transactions', [TransactionController::class, 'index']);

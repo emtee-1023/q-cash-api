@@ -7,6 +7,7 @@ use App\Enums\BusinessStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateBusinessKycStatusRequest;
 use App\Http\Requests\Admin\UpdateBusinessStatusRequest;
+use App\Http\Requests\UpdateBusinessRequest;
 use App\Http\Resources\AdminBusinessDetailResource;
 use App\Http\Resources\BusinessResource;
 use App\Models\Business;
@@ -51,6 +52,16 @@ class BusinessController extends Controller
     public function show(Business $business): AdminBusinessDetailResource
     {
         return new AdminBusinessDetailResource($this->loadBusiness($business));
+    }
+
+    public function update(UpdateBusinessRequest $request, Business $business): AdminBusinessDetailResource
+    {
+        $business->update([
+            'business_name' => $request->string('business_name')->toString(),
+        ]);
+
+        return (new AdminBusinessDetailResource($this->loadBusiness($business)))
+            ->additional(['message' => 'Business name updated.']);
     }
 
     public function updateStatus(

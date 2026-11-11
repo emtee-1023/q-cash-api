@@ -38,6 +38,19 @@ test('admins can view business details', function () {
         ->assertJsonPath('data.collection_account_number', $business->collection_account_number);
 });
 
+test('admins can update business names', function () {
+    $admin = User::factory()->admin()->create();
+    $business = Business::factory()->create(['business_name' => 'Old Name']);
+
+    $this->withToken(adminBusinessToken($admin))
+        ->patchJson("/api/admin/businesses/{$business->id}", [
+            'business_name' => 'Admin Renamed',
+        ])->assertOk()
+        ->assertJsonPath('data.business_name', 'Admin Renamed');
+
+    expect($business->refresh()->business_name)->toBe('Admin Renamed');
+});
+
 test('admins can update business status', function () {
     $admin = User::factory()->admin()->create();
     $business = Business::factory()->create();

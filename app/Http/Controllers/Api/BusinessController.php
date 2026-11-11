@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreBusinessRequest;
+use App\Http\Requests\UpdateBusinessRequest;
 use App\Http\Resources\BusinessDetailResource;
 use App\Http\Resources\BusinessResource;
 use App\Models\Business;
@@ -73,6 +74,20 @@ class BusinessController extends Controller
         return (new BusinessDetailResource($business))
             ->response()
             ->setStatusCode(201);
+    }
+
+    public function update(UpdateBusinessRequest $request, Business $business): BusinessDetailResource
+    {
+        $this->authorize('update', $business);
+
+        $business->update([
+            'business_name' => $request->string('business_name')->toString(),
+        ]);
+
+        $business->load(['businessType', 'countyLocation', 'subCounty', 'ward']);
+
+        return (new BusinessDetailResource($business))
+            ->additional(['message' => 'Business name updated.']);
     }
 
     /**
