@@ -21,8 +21,6 @@ class BusinessFactory extends Factory
             'registration_number' => fake()->optional()->numerify('REG-#####'),
             'phone_number' => '254'.fake()->numerify('7########'),
             'email' => fake()->unique()->safeEmail(),
-            'county' => fake()->city(),
-            'town' => fake()->city(),
             'has_physical_location' => true,
             'county_id' => null,
             'sub_county_id' => null,

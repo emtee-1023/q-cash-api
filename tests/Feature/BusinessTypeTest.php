@@ -34,21 +34,6 @@ test('the business type seeder is idempotent', function () {
     expect(BusinessType::query()->count())->toBe($count);
 });
 
-test('the business type seeder backfills existing businesses', function () {
-    $business = Business::factory()->create(['business_type_id' => null]);
-    $business->forceFill([
-        'business_type' => 'retail',
-        'business_category' => 'general_store',
-    ])->save();
-
-    $this->seed(BusinessTypeSeeder::class);
-
-    $business->refresh();
-
-    expect($business->business_type_id)->not->toBeNull();
-    expect($business->businessType->slug)->toBe('general-shop');
-});
-
 test('the qcash seeder links every business to a business type and location', function () {
     $this->seed([
         LocationSeeder::class,

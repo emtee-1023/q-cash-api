@@ -27,8 +27,7 @@ class BusinessResource extends JsonResource
             ),
             'business_category' => $this->whenLoaded(
                 'businessType',
-                fn () => $this->businessType?->category ?? $this->business_category,
-                $this->business_category,
+                fn () => $this->businessType?->category,
             ),
             'registration_number' => $this->registration_number,
             'phone_number' => $this->phone_number,
@@ -39,13 +38,11 @@ class BusinessResource extends JsonResource
             'ward_id' => $this->ward_id,
             'county' => $this->whenLoaded(
                 'countyLocation',
-                fn () => $this->countyLocation?->name ?? $this->county,
-                $this->county,
+                fn () => $this->countyLocation?->name,
             ),
             'town' => $this->whenLoaded(
                 'subCounty',
-                fn () => $this->subCounty?->name ?? $this->town,
-                $this->town,
+                fn () => $this->subCounty?->name,
             ),
             'ward' => $this->whenLoaded(
                 'ward',

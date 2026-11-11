@@ -67,6 +67,10 @@ test('email verification codes track email otp state', function () {
     ]))->toBeTrue();
 });
 
+test('legacy business type and location columns are removed', function () {
+    expect(Schema::hasColumns('businesses', ['business_type', 'business_category', 'county', 'town']))->toBeFalse();
+});
+
 test('businesses track physical location details', function () {
     expect(Schema::hasColumns('businesses', [
         'has_physical_location',

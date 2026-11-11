@@ -23,8 +23,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'registration_number',
     'phone_number',
     'email',
-    'county',
-    'town',
     'has_physical_location',
     'county_id',
     'sub_county_id',
