@@ -53,6 +53,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         ->middleware('throttle:6,1')
         ->name('activate');
 
+    Route::post('activate/resend-otp', [AdminActivationController::class, 'resendOtp'])
+        ->middleware('throttle:6,1')
+        ->name('activate.resend-otp');
+
     Route::middleware(['auth:sanctum', 'admin'])->group(function () {
         Route::get('me', [AdminLoginController::class, 'me'])->name('me');
         Route::post('logout', [AdminLoginController::class, 'logout'])->name('logout');
