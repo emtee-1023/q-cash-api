@@ -42,20 +42,10 @@ class BusinessController extends Controller
         $attributes = $request->validated();
         $hasPhysicalLocation = $request->boolean('has_physical_location');
 
-        if ($hasPhysicalLocation) {
-            if (isset($attributes['county_id'])) {
-                $attributes['county'] = County::find($attributes['county_id'])?->name;
-            }
-
-            if (isset($attributes['sub_county_id'])) {
-                $attributes['town'] = SubCounty::find($attributes['sub_county_id'])?->name;
-            }
-        } else {
+        if (! $hasPhysicalLocation) {
             $attributes['county_id'] = null;
             $attributes['sub_county_id'] = null;
             $attributes['ward_id'] = null;
-            $attributes['county'] = null;
-            $attributes['town'] = null;
             $attributes['physical_address'] = null;
         }
 

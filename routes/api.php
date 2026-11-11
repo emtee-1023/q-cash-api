@@ -57,6 +57,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             ->name('businesses.kyc-status');
 
         Route::get('users', [AdminUserController::class, 'index'])->name('users.index');
+        Route::patch('users/{user}', [AdminUserController::class, 'update'])->name('users.update');
         Route::post('users/{user}/grant-admin', [AdminUserController::class, 'grant'])
             ->name('users.grant-admin');
         Route::post('users/{user}/revoke-admin', [AdminUserController::class, 'revoke'])

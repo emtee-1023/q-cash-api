@@ -64,8 +64,8 @@ class AssessmentService
             'assessment_date' => now()->toIso8601String(),
             'transactions' => $transactions,
             'business_profile' => [
-                'business_type' => $business->businessType?->slug ?? $business->business_type,
-                'sector' => $business->businessType?->category ?? $business->business_category,
+                'business_type' => $business->businessType?->slug,
+                'sector' => $business->businessType?->category,
                 'cohort' => null,
                 'registration_date' => $business->operating_since?->toDateString(),
             ],

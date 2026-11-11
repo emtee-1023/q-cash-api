@@ -18,7 +18,6 @@ test('creating a business attaches the authenticated user as owner', function ()
     $response = $this->postJson('/api/businesses', [
         'business_name' => 'Fresh Market',
         'business_type_id' => $businessType->id,
-        'county' => 'Nairobi',
     ]);
 
     $response->assertCreated()

@@ -27,8 +27,6 @@ class StoreBusinessRequest extends FormRequest
             'registration_number' => ['nullable', 'string', 'max:100'],
             'phone_number' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],
-            'county' => ['nullable', 'string', 'max:100'],
-            'town' => ['nullable', 'string', 'max:100'],
             'has_physical_location' => ['sometimes', 'boolean'],
             'county_id' => ['nullable', 'integer', 'exists:counties,id'],
             'sub_county_id' => [

@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\Business;
 use App\Models\BusinessType;
 use Illuminate\Database\Seeder;
 
@@ -152,7 +151,6 @@ class BusinessTypeSeeder extends Seeder
             );
         }
 
-        $this->backfillExistingBusinesses();
     }
 
     public static function slugForLegacy(?string $category, ?string $type = null): string
@@ -176,20 +174,5 @@ class BusinessTypeSeeder extends Seeder
                 default => 'other-small-business',
             },
         };
-    }
-
-    private function backfillExistingBusinesses(): void
-    {
-        Business::query()
-            ->whereNull('business_type_id')
-            ->each(function (Business $business) {
-                $typeId = BusinessType::query()
-                    ->where('slug', self::slugForLegacy($business->business_category, $business->business_type))
-                    ->value('id');
-
-                if ($typeId !== null) {
-                    $business->update(['business_type_id' => $typeId]);
-                }
-            });
     }
 }

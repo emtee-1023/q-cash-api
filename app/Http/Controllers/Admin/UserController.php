@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Http\Resources\AdminUserResource;
 use App\Models\User;
 use App\Services\Admin\AdminActivationService;
+use App\Services\Auth\EmailOtpService;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -32,6 +34,43 @@ class UserController extends Controller
             ->withQueryString();
 
         return AdminUserResource::collection($users);
+    }
+
+    public function update(
+        UpdateUserRequest $request,
+        User $user,
+        EmailOtpService $emailOtpService,
+    ): AdminUserResource {
+        $attributes = [];
+
+        foreach ([
+            'name',
+            'email',
+            'phone_number',
+            'id_type',
+            'identification_number',
+            'date_of_birth',
+        ] as $field) {
+            if ($request->has($field)) {
+                $attributes[$field] = $request->input($field);
+            }
+        }
+
+        $emailChanged = array_key_exists('email', $attributes)
+            && $attributes['email'] !== $user->email;
+
+        if ($emailChanged) {
+            $attributes['email_verified_at'] = null;
+        }
+
+        $user->forceFill($attributes)->save();
+
+        if ($emailChanged && $user->email !== null) {
+            $emailOtpService->send($user);
+        }
+
+        return (new AdminUserResource($user->fresh()))
+            ->additional(['message' => 'User updated.']);
     }
 
     public function grant(

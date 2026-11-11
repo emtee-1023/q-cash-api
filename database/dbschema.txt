@@ -108,15 +108,11 @@ Table businesses {
   public_id uuid [not null, unique]
 
   business_name varchar(255) [not null]
-  business_type varchar(100)
-  business_category varchar(100)
   registration_number varchar(100)
 
   phone_number varchar(30)
   email varchar(255)
 
-  county varchar(100) [note: 'Legacy fallback; prefer county_id']
-  town varchar(100) [note: 'Legacy fallback; prefer sub_county_id']
   has_physical_location boolean [not null, default: true]
   county_id bigint
   sub_county_id bigint

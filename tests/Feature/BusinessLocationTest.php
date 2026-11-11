@@ -40,8 +40,8 @@ test('a physical business stores county sub county and ward', function () {
     $business = Business::query()->firstOrFail();
 
     expect($business->has_physical_location)->toBeTrue();
-    expect($business->county)->toBe($county->name);
-    expect($business->town)->toBe($subCounty->name);
+    expect($business->countyLocation?->name)->toBe($county->name);
+    expect($business->subCounty?->name)->toBe($subCounty->name);
 });
 
 test('an online business stores false and clears location details', function () {
@@ -61,8 +61,6 @@ test('an online business stores false and clears location details', function () 
         'sub_county_id' => $subCounty->id,
         'ward_id' => $ward->id,
         'physical_address' => '12 Market Street',
-        'county' => 'Nairobi',
-        'town' => 'Langata',
     ])->assertCreated()
         ->assertJsonPath('data.has_physical_location', false)
         ->assertJsonPath('data.county_id', null)
@@ -78,8 +76,6 @@ test('an online business stores false and clears location details', function () 
     expect($business->county_id)->toBeNull();
     expect($business->sub_county_id)->toBeNull();
     expect($business->ward_id)->toBeNull();
-    expect($business->county)->toBeNull();
-    expect($business->town)->toBeNull();
     expect($business->physical_address)->toBeNull();
 });
 

@@ -248,8 +248,6 @@ class QCashSeeder extends Seeder
             'registration_number' => sprintf('REG-%06d', $scenario['seq']),
             'phone_number' => sprintf('2547901%05d', $scenario['seq']),
             'email' => sprintf('acme%03d@example.test', $scenario['seq']),
-            'county' => $hasPhysicalLocation ? $county?->name : null,
-            'town' => $hasPhysicalLocation ? $subCounty?->name : null,
             'has_physical_location' => $hasPhysicalLocation,
             'county_id' => $county?->id,
             'sub_county_id' => $subCounty?->id,
