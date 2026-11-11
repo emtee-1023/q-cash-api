@@ -248,7 +248,6 @@ class QCashSeeder extends Seeder
         $business->paymentAccounts()->create([
             'provider' => 'Safaricom',
             'channel_type' => 'till',
-            'account_number' => sprintf('%06d', 100000 + $scenario['seq']),
             'account_reference' => sprintf('QC%04d', $scenario['seq']),
             'account_name' => $b['name'],
             'status' => 'active',
@@ -260,7 +259,6 @@ class QCashSeeder extends Seeder
             $business->paymentAccounts()->create([
                 'provider' => 'Safaricom',
                 'channel_type' => 'paybill',
-                'account_number' => sprintf('%06d', 500000 + $scenario['seq']),
                 'account_reference' => sprintf('PB%04d', $scenario['seq']),
                 'account_name' => $b['name'],
                 'status' => 'active',

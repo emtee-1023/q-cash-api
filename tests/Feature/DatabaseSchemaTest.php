@@ -43,8 +43,13 @@ test('monetary columns are present on the key financial tables', function () {
     expect(Schema::hasColumns('advance_ledger_entries', ['amount_minor', 'entry_type']))->toBeTrue();
 });
 
-test('businesses track kyc status', function () {
+test('businesses track kyc status and collection account number', function () {
     expect(Schema::hasColumn('businesses', 'kyc_status'))->toBeTrue();
+    expect(Schema::hasColumn('businesses', 'collection_account_number'))->toBeTrue();
+});
+
+test('payment accounts do not store a separate account number', function () {
+    expect(Schema::hasColumn('payment_accounts', 'account_number'))->toBeFalse();
 });
 
 test('foreign keys are defined on the core relationships', function () {

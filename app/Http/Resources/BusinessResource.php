@@ -39,6 +39,7 @@ class BusinessResource extends JsonResource
             'operating_since' => $this->operating_since?->toDateString(),
             'status' => $this->status?->value,
             'kyc_status' => $this->kyc_status?->value,
+            'collection_account_number' => $this->collection_account_number,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

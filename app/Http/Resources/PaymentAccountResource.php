@@ -21,7 +21,6 @@ class PaymentAccountResource extends JsonResource
             'business_id' => $this->business_id,
             'provider' => $this->provider,
             'channel_type' => $this->channel_type,
-            'account_number' => $this->account_number,
             'account_reference' => $this->account_reference,
             'account_name' => $this->account_name,
             'status' => $this->status?->value,

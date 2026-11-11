@@ -14,7 +14,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'business_id',
     'provider',
     'channel_type',
-    'account_number',
     'account_reference',
     'account_name',
     'status',

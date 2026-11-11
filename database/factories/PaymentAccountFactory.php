@@ -18,7 +18,6 @@ class PaymentAccountFactory extends Factory
             'business_id' => Business::factory(),
             'provider' => 'Safaricom',
             'channel_type' => 'paybill',
-            'account_number' => fake()->unique()->numerify('######'),
             'account_reference' => null,
             'account_name' => fake()->company(),
             'status' => PaymentAccountStatus::Pending->value,

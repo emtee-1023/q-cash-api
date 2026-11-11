@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreBusinessRequest;
+use App\Http\Resources\BusinessDetailResource;
 use App\Http\Resources\BusinessResource;
 use App\Models\Business;
 use Illuminate\Http\Request;
@@ -43,7 +44,7 @@ class BusinessController extends Controller
 
         $business->load('businessType');
 
-        return (new BusinessResource($business))
+        return (new BusinessDetailResource($business))
             ->response()
             ->setStatusCode(201);
     }
@@ -59,6 +60,6 @@ class BusinessController extends Controller
 
         $business->load('businessType');
 
-        return new BusinessResource($business);
+        return new BusinessDetailResource($business);
     }
 }

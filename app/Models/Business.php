@@ -45,6 +45,24 @@ class Business extends Model
         'kyc_status' => 'unverified',
     ];
 
+    protected static function booted(): void
+    {
+        static::creating(function (Business $business): void {
+            if (blank($business->collection_account_number)) {
+                $business->collection_account_number = static::generateCollectionAccountNumber();
+            }
+        });
+    }
+
+    protected static function generateCollectionAccountNumber(): string
+    {
+        do {
+            $accountNumber = (string) random_int(100000, 999999);
+        } while (static::withTrashed()->where('collection_account_number', $accountNumber)->exists());
+
+        return $accountNumber;
+    }
+
     protected function casts(): array
     {
         return [

@@ -19,7 +19,6 @@ class StorePaymentAccountRequest extends FormRequest
         return [
             'provider' => ['required', 'string', 'max:50'],
             'channel_type' => ['required', 'string', 'max:50'],
-            'account_number' => ['required', 'string', 'max:100'],
             'account_reference' => ['nullable', 'string', 'max:150'],
             'account_name' => ['nullable', 'string', 'max:255'],
         ];

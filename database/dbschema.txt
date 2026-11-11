@@ -94,7 +94,6 @@ Table payment_accounts {
 
   provider varchar(50) [not null, note: 'e.g. Safaricom']
   channel_type varchar(50) [not null, note: 'paybill, till, bank']
-  account_number varchar(100) [not null]
   account_reference varchar(150)
 
   account_name varchar(255)
@@ -107,7 +106,6 @@ Table payment_accounts {
   updated_at timestamp
 
   Indexes {
-    (provider, channel_type, account_number, account_reference) [unique]
     business_id
   }
 }
