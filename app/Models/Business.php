@@ -138,6 +138,14 @@ class Business extends Model
     }
 
     /**
+     * @return HasMany<BusinessInvitation, $this>
+     */
+    public function invitations(): HasMany
+    {
+        return $this->hasMany(BusinessInvitation::class);
+    }
+
+    /**
      * @return HasMany<PaymentAccount, $this>
      */
     public function paymentAccounts(): HasMany

@@ -7,6 +7,8 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\AdvanceController;
 use App\Http\Controllers\Api\AssessmentController;
 use App\Http\Controllers\Api\BusinessController;
+use App\Http\Controllers\Api\BusinessInvitationController;
+use App\Http\Controllers\Api\BusinessMemberController;
 use App\Http\Controllers\Api\BusinessTypeController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\OfferController;
@@ -34,6 +36,13 @@ Route::get('/test', [Test::class, 'test']);
 Route::post('/testsms', [Test::class, 'sendSms']);
 
 Route::post('auth/register', [RegisterController::class, 'register']);
+
+Route::post('business-invitations/activate', [BusinessInvitationController::class, 'activate'])
+    ->middleware('throttle:6,1')
+    ->name('business-invitations.activate');
+Route::post('business-invitations/resend-otp', [BusinessInvitationController::class, 'resendOtp'])
+    ->middleware('throttle:6,1')
+    ->name('business-invitations.resend-otp');
 
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('login', [AdminLoginController::class, 'login'])
@@ -72,6 +81,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('locations/sub-counties/{subCounty}/wards', [LocationController::class, 'wards']);
 
     Route::apiResource('businesses', BusinessController::class)->only(['index', 'store', 'show']);
+
+    Route::get('businesses/{business}/members', [BusinessMemberController::class, 'index'])
+        ->name('businesses.members.index');
+    Route::post('businesses/{business}/members', [BusinessMemberController::class, 'store'])
+        ->name('businesses.members.store');
     Route::patch('businesses/{business}', [BusinessController::class, 'update'])->name('businesses.update');
 
     Route::post('businesses/{business}/payment-accounts', [PaymentAccountController::class, 'store']);
