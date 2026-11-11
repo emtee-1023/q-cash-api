@@ -9,6 +9,7 @@ test('all q-cash tables exist', function () {
     $tables = [
         'users',
         'businesses',
+        'business_types',
         'business_users',
         'payment_accounts',
         'transactions',
@@ -33,6 +34,7 @@ test('all q-cash tables exist', function () {
 });
 
 test('monetary columns are present on the key financial tables', function () {
+    expect(Schema::hasColumns('business_types', ['average_monthly_revenue_minor']))->toBeTrue();
     expect(Schema::hasColumns('transactions', ['amount_minor', 'currency']))->toBeTrue();
     expect(Schema::hasColumns('advance_offers', ['offered_amount_minor', 'fee_amount_minor', 'total_repayable_minor']))->toBeTrue();
     expect(Schema::hasColumns('advances', ['principal_amount_minor', 'outstanding_balance_minor']))->toBeTrue();
@@ -43,6 +45,7 @@ test('monetary columns are present on the key financial tables', function () {
 
 test('foreign keys are defined on the core relationships', function () {
     $expectations = [
+        'businesses' => ['business_type_id'],
         'business_users' => ['business_id', 'user_id'],
         'payment_accounts' => ['business_id'],
         'transactions' => ['business_id', 'payment_account_id'],

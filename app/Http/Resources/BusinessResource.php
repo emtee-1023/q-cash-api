@@ -20,8 +20,16 @@ class BusinessResource extends JsonResource
             'id' => $this->id,
             'public_id' => $this->public_id,
             'business_name' => $this->business_name,
-            'business_type' => $this->business_type,
-            'business_category' => $this->business_category,
+            'business_type_id' => $this->business_type_id,
+            'business_type' => $this->whenLoaded(
+                'businessType',
+                fn () => $this->businessType ? new BusinessTypeResource($this->businessType) : null,
+            ),
+            'business_category' => $this->whenLoaded(
+                'businessType',
+                fn () => $this->businessType?->category ?? $this->business_category,
+                $this->business_category,
+            ),
             'registration_number' => $this->registration_number,
             'phone_number' => $this->phone_number,
             'email' => $this->email,

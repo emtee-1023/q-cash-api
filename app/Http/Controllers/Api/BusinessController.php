@@ -20,7 +20,7 @@ class BusinessController extends Controller
      */
     public function index(Request $request)
     {
-        $businesses = $request->user()->businesses()->get();
+        $businesses = $request->user()->businesses()->with('businessType')->get();
 
         return BusinessResource::collection($businesses);
     }
@@ -41,6 +41,8 @@ class BusinessController extends Controller
             'status' => 'active',
         ]);
 
+        $business->load('businessType');
+
         return (new BusinessResource($business))
             ->response()
             ->setStatusCode(201);
@@ -54,6 +56,8 @@ class BusinessController extends Controller
     public function show(Business $business)
     {
         $this->authorize('view', $business);
+
+        $business->load('businessType');
 
         return new BusinessResource($business);
     }

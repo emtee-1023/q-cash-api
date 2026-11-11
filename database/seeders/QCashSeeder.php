@@ -12,6 +12,7 @@ use App\Models\Advance;
 use App\Models\AdvanceLedgerEntry;
 use App\Models\AdvanceOffer;
 use App\Models\Business;
+use App\Models\BusinessType;
 use App\Models\DecisionPolicy;
 use App\Models\Disbursement;
 use App\Models\EraAssessment;
@@ -73,13 +74,16 @@ class QCashSeeder extends Seeder
         fake()->seed(self::SEED);
         $this->now = now()->startOfDay();
 
+        $this->call(BusinessTypeSeeder::class);
+
+        $businessTypes = BusinessType::query()->pluck('id', 'slug');
         $users = $this->seedUsers();
         $modelVersion = $this->seedModelVersions();
         $policy = $this->seedDecisionPolicies();
         $partners = $this->seedFinancingPartners();
 
         foreach ($this->scenarioDefinitions() as $scenario) {
-            $business = $this->seedBusiness($scenario, $users);
+            $business = $this->seedBusiness($scenario, $users, $businessTypes);
             $transactions = $this->seedTransactions($business, $scenario);
             $this->seedClassifications($business, $transactions, $scenario);
 
@@ -202,15 +206,17 @@ class QCashSeeder extends Seeder
     /**
      * @param  array<string, mixed>  $scenario
      * @param  array<int, User>  $users
+     * @param  Collection<string, int>  $businessTypes
      */
-    private function seedBusiness(array $scenario, array $users): Business
+    private function seedBusiness(array $scenario, array $users, Collection $businessTypes): Business
     {
         $b = $scenario['business'];
 
         $business = Business::create([
             'business_name' => $b['name'],
-            'business_type' => $b['type'] ?? null,
-            'business_category' => $b['category'] ?? null,
+            'business_type_id' => $businessTypes->get(
+                BusinessTypeSeeder::slugForLegacy($b['category'] ?? null, $b['type'] ?? null),
+            ),
             'registration_number' => sprintf('REG-%06d', $scenario['seq']),
             'phone_number' => sprintf('2547901%05d', $scenario['seq']),
             'email' => sprintf('acme%03d@example.test', $scenario['seq']),

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreBusinessRequest extends FormRequest
 {
@@ -18,8 +19,11 @@ class StoreBusinessRequest extends FormRequest
     {
         return [
             'business_name' => ['required', 'string', 'max:255'],
-            'business_type' => ['nullable', 'string', 'max:100'],
-            'business_category' => ['nullable', 'string', 'max:100'],
+            'business_type_id' => [
+                'required',
+                'integer',
+                Rule::exists('business_types', 'id')->where('is_active', true),
+            ],
             'registration_number' => ['nullable', 'string', 'max:100'],
             'phone_number' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],

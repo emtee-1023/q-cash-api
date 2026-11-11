@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Enums\BusinessStatus;
 use App\Models\Business;
+use App\Models\BusinessType;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -15,8 +16,7 @@ class BusinessFactory extends Factory
     {
         return [
             'business_name' => fake()->company(),
-            'business_type' => fake()->randomElement(['retail', 'wholesale', 'service']),
-            'business_category' => fake()->randomElement(['shop', 'food', 'transport']),
+            'business_type_id' => BusinessType::factory(),
             'registration_number' => fake()->optional()->numerify('REG-#####'),
             'phone_number' => '254'.fake()->numerify('7########'),
             'email' => fake()->unique()->safeEmail(),

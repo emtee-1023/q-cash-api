@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Business;
+use App\Models\BusinessType;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -9,17 +10,23 @@ uses(RefreshDatabase::class);
 
 test('creating a business attaches the authenticated user as owner', function () {
     $user = User::factory()->create();
+    $businessType = BusinessType::factory()->create();
     Sanctum::actingAs($user);
 
     $response = $this->postJson('/api/businesses', [
         'business_name' => 'Fresh Market',
+        'business_type_id' => $businessType->id,
         'county' => 'Nairobi',
     ]);
 
-    $response->assertCreated();
+    $response->assertCreated()
+        ->assertJsonPath('data.business_type_id', $businessType->id)
+        ->assertJsonPath('data.business_type.slug', $businessType->slug);
+
     $business = Business::query()->first();
 
     expect($business->business_name)->toBe('Fresh Market');
+    expect($business->business_type_id)->toBe($businessType->id);
     expect($business->businessUsers()->where('user_id', $user->id)->where('role', 'owner')->exists())->toBeTrue();
 });
 

@@ -3,6 +3,7 @@
 use App\Models\Advance;
 use App\Models\AdvanceOffer;
 use App\Models\Business;
+use App\Models\BusinessType;
 use App\Models\BusinessUser;
 use App\Models\EraAssessment;
 use App\Models\PaymentAccount;
@@ -28,6 +29,34 @@ test('a user has businesses through business_users', function () {
 
     expect($user->businesses()->count())->toBe(1);
     expect($user->businesses()->first()->id)->toBe($business->id);
+});
+
+test('a user can own multiple businesses', function () {
+    $user = User::factory()->create();
+    $firstBusiness = Business::factory()->create();
+    $secondBusiness = Business::factory()->create();
+
+    foreach ([$firstBusiness, $secondBusiness] as $business) {
+        $business->businessUsers()->create([
+            'user_id' => $user->id,
+            'role' => 'owner',
+            'is_primary_contact' => true,
+            'status' => 'active',
+        ]);
+    }
+
+    expect($user->businesses()->count())->toBe(2);
+    expect($user->businesses()->pluck('businesses.id')->all())
+        ->toEqualCanonicalizing([$firstBusiness->id, $secondBusiness->id]);
+});
+
+test('a business belongs to a business type', function () {
+    $businessType = BusinessType::factory()->create();
+    $business = Business::factory()->create(['business_type_id' => $businessType->id]);
+
+    expect($business->businessType->id)->toBe($businessType->id);
+    expect($businessType->businesses()->count())->toBe(1);
+    expect($businessType->businesses()->first()->id)->toBe($business->id);
 });
 
 test('a business belongs to many users', function () {
