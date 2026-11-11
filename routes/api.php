@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\AdvanceController;
 use App\Http\Controllers\Api\AssessmentController;
 use App\Http\Controllers\Api\BusinessController;
 use App\Http\Controllers\Api\BusinessTypeController;
+use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\OfferController;
 use App\Http\Controllers\Api\PaymentAccountController;
 use App\Http\Controllers\Api\RepaymentController;
@@ -56,6 +57,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('business-types', [BusinessTypeController::class, 'index']);
+
+    Route::get('locations/counties', [LocationController::class, 'counties']);
+    Route::get('locations/counties/{county}/sub-counties', [LocationController::class, 'subCounties']);
+    Route::get('locations/sub-counties/{subCounty}/wards', [LocationController::class, 'wards']);
 
     Route::apiResource('businesses', BusinessController::class)->only(['index', 'store', 'show']);
 

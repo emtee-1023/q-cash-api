@@ -25,6 +25,7 @@ test('creating a business attaches the authenticated user as owner', function ()
         ->assertJsonPath('data.business_type_id', $businessType->id)
         ->assertJsonPath('data.business_type.slug', $businessType->slug)
         ->assertJsonPath('data.kyc_status', 'unverified')
+        ->assertJsonPath('data.has_physical_location', true)
         ->assertJsonPath('data.paybill_number', '456456');
 
     $business = Business::query()->first();
@@ -32,6 +33,7 @@ test('creating a business attaches the authenticated user as owner', function ()
     expect($business->business_name)->toBe('Fresh Market');
     expect($business->business_type_id)->toBe($businessType->id);
     expect($business->kyc_status)->toBe(BusinessKycStatus::Unverified);
+    expect($business->has_physical_location)->toBeTrue();
     expect($business->collection_account_number)->toMatch('/^[1-9]\d{5}$/');
     expect($response->json('data.collection_account_number'))->toBe($business->collection_account_number);
     expect($business->businessUsers()->where('user_id', $user->id)->where('role', 'owner')->exists())->toBeTrue();

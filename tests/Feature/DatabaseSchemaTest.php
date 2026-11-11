@@ -10,6 +10,9 @@ test('all q-cash tables exist', function () {
         'users',
         'businesses',
         'business_types',
+        'counties',
+        'sub_counties',
+        'wards',
         'business_users',
         'payment_accounts',
         'transactions',
@@ -52,9 +55,20 @@ test('payment accounts do not store a separate account number', function () {
     expect(Schema::hasColumn('payment_accounts', 'account_number'))->toBeFalse();
 });
 
+test('businesses track physical location details', function () {
+    expect(Schema::hasColumns('businesses', [
+        'has_physical_location',
+        'county_id',
+        'sub_county_id',
+        'ward_id',
+    ]))->toBeTrue();
+});
+
 test('foreign keys are defined on the core relationships', function () {
     $expectations = [
-        'businesses' => ['business_type_id'],
+        'businesses' => ['business_type_id', 'county_id', 'sub_county_id', 'ward_id'],
+        'sub_counties' => ['county_id'],
+        'wards' => ['sub_county_id'],
         'business_users' => ['business_id', 'user_id'],
         'payment_accounts' => ['business_id'],
         'transactions' => ['business_id', 'payment_account_id'],

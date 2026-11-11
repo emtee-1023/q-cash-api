@@ -25,6 +25,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'email',
     'county',
     'town',
+    'has_physical_location',
+    'county_id',
+    'sub_county_id',
+    'ward_id',
     'physical_address',
     'operating_since',
     'status',
@@ -69,6 +73,7 @@ class Business extends Model
             'operating_since' => 'date',
             'status' => BusinessStatus::class,
             'kyc_status' => BusinessKycStatus::class,
+            'has_physical_location' => 'boolean',
         ];
     }
 
@@ -87,6 +92,30 @@ class Business extends Model
     public function businessType(): BelongsTo
     {
         return $this->belongsTo(BusinessType::class);
+    }
+
+    /**
+     * @return BelongsTo<County, $this>
+     */
+    public function countyLocation(): BelongsTo
+    {
+        return $this->belongsTo(County::class, 'county_id');
+    }
+
+    /**
+     * @return BelongsTo<SubCounty, $this>
+     */
+    public function subCounty(): BelongsTo
+    {
+        return $this->belongsTo(SubCounty::class, 'sub_county_id');
+    }
+
+    /**
+     * @return BelongsTo<Ward, $this>
+     */
+    public function ward(): BelongsTo
+    {
+        return $this->belongsTo(Ward::class, 'ward_id');
     }
 
     /**

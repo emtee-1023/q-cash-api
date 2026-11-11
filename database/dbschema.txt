@@ -38,6 +38,51 @@ Table users {
 }
 
 // =====================================================
+// 0. KENYA LOCATION MASTER DATA
+// =====================================================
+
+Table counties {
+  id bigint [pk, increment]
+  code varchar(10) [not null, unique]
+  name varchar(100) [not null, unique]
+  slug varchar(120) [not null, unique]
+  capital varchar(100)
+  region varchar(100)
+  iso_code varchar(10)
+  postal_code varchar(20)
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table sub_counties {
+  id bigint [pk, increment]
+  county_id bigint [not null]
+  code varchar(10) [not null, unique]
+  name varchar(100) [not null]
+  slug varchar(120) [not null]
+  created_at timestamp
+  updated_at timestamp
+
+  Indexes {
+    (county_id, slug) [unique]
+  }
+}
+
+Table wards {
+  id bigint [pk, increment]
+  sub_county_id bigint [not null]
+  code varchar(10) [not null, unique]
+  name varchar(100) [not null]
+  slug varchar(120) [not null]
+  created_at timestamp
+  updated_at timestamp
+
+  Indexes {
+    (sub_county_id, slug) [unique]
+  }
+}
+
+// =====================================================
 // 1. BUSINESS MANAGEMENT
 // =====================================================
 
@@ -53,8 +98,12 @@ Table businesses {
   phone_number varchar(30)
   email varchar(255)
 
-  county varchar(100)
-  town varchar(100)
+  county varchar(100) [note: 'Legacy fallback; prefer county_id']
+  town varchar(100) [note: 'Legacy fallback; prefer sub_county_id']
+  has_physical_location boolean [not null, default: true]
+  county_id bigint
+  sub_county_id bigint
+  ward_id bigint
   physical_address text
 
   operating_since date
@@ -581,6 +630,13 @@ Table provider_webhook_events {
 // =====================================================
 // RELATIONSHIPS
 // =====================================================
+
+// Location master data
+Ref: sub_counties.county_id > counties.id
+Ref: wards.sub_county_id > sub_counties.id
+Ref: businesses.county_id > counties.id
+Ref: businesses.sub_county_id > sub_counties.id
+Ref: businesses.ward_id > wards.id
 
 // Business management
 Ref: business_users.business_id > businesses.id

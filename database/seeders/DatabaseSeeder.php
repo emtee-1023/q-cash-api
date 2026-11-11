@@ -11,6 +11,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call(QCashSeeder::class);
+        $this->call([
+            LocationSeeder::class,
+            QCashSeeder::class,
+        ]);
     }
 }
