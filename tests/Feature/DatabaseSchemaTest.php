@@ -8,6 +8,7 @@ uses(RefreshDatabase::class);
 test('all q-cash tables exist', function () {
     $tables = [
         'users',
+        'email_verification_codes',
         'businesses',
         'business_types',
         'counties',
@@ -55,6 +56,17 @@ test('payment accounts do not store a separate account number', function () {
     expect(Schema::hasColumn('payment_accounts', 'account_number'))->toBeFalse();
 });
 
+test('email verification codes track email otp state', function () {
+    expect(Schema::hasColumns('email_verification_codes', [
+        'user_id',
+        'email',
+        'otp_hash',
+        'expires_at',
+        'attempts',
+        'verified_at',
+    ]))->toBeTrue();
+});
+
 test('businesses track physical location details', function () {
     expect(Schema::hasColumns('businesses', [
         'has_physical_location',
@@ -67,6 +79,7 @@ test('businesses track physical location details', function () {
 test('foreign keys are defined on the core relationships', function () {
     $expectations = [
         'businesses' => ['business_type_id', 'county_id', 'sub_county_id', 'ward_id'],
+        'email_verification_codes' => ['user_id'],
         'sub_counties' => ['county_id'],
         'wards' => ['sub_county_id'],
         'business_users' => ['business_id', 'user_id'],
