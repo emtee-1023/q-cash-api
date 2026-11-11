@@ -78,16 +78,66 @@ class BusinessController extends Controller
 
     public function update(UpdateBusinessRequest $request, Business $business): BusinessDetailResource
     {
-        $this->authorize('update', $business);
+        $this->authorize('manageProfile', $business);
 
-        $business->update([
-            'business_name' => $request->string('business_name')->toString(),
-        ]);
+        $attributes = [];
+
+        foreach (['business_name', 'business_type_id', 'phone_number', 'email', 'physical_address'] as $field) {
+            if ($request->has($field)) {
+                $attributes[$field] = $request->input($field);
+            }
+        }
+
+        $hasPhysicalLocation = $request->has('has_physical_location')
+            ? $request->boolean('has_physical_location')
+            : null;
+
+        if ($hasPhysicalLocation === false) {
+            $attributes['has_physical_location'] = false;
+            $attributes['county_id'] = null;
+            $attributes['sub_county_id'] = null;
+            $attributes['ward_id'] = null;
+            $attributes['county'] = null;
+            $attributes['town'] = null;
+            $attributes['physical_address'] = null;
+        } else {
+            if ($hasPhysicalLocation === true) {
+                $attributes['has_physical_location'] = true;
+            }
+
+            if ($request->has('county_id')) {
+                $countyId = $request->input('county_id');
+                $attributes['county_id'] = $countyId;
+                $attributes['county'] = $countyId !== null ? County::find($countyId)?->name : null;
+
+                if ((int) $countyId !== (int) $business->county_id && ! $request->has('sub_county_id')) {
+                    $attributes['sub_county_id'] = null;
+                    $attributes['town'] = null;
+                    $attributes['ward_id'] = null;
+                }
+            }
+
+            if ($request->has('sub_county_id')) {
+                $subCountyId = $request->input('sub_county_id');
+                $attributes['sub_county_id'] = $subCountyId;
+                $attributes['town'] = $subCountyId !== null ? SubCounty::find($subCountyId)?->name : null;
+
+                if ((int) $subCountyId !== (int) $business->sub_county_id && ! $request->has('ward_id')) {
+                    $attributes['ward_id'] = null;
+                }
+            }
+
+            if ($request->has('ward_id')) {
+                $attributes['ward_id'] = $request->input('ward_id');
+            }
+        }
+
+        $business->update($attributes);
 
         $business->load(['businessType', 'countyLocation', 'subCounty', 'ward']);
 
         return (new BusinessDetailResource($business))
-            ->additional(['message' => 'Business name updated.']);
+            ->additional(['message' => 'Business updated.']);
     }
 
     /**

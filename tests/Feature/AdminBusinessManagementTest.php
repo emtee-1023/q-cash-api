@@ -3,6 +3,7 @@
 use App\Enums\BusinessKycStatus;
 use App\Enums\BusinessStatus;
 use App\Models\Business;
+use App\Models\BusinessType;
 use App\Models\User;
 use App\Support\AdminToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -97,4 +98,18 @@ test('business status updates reject invalid values', function () {
             'status' => 'invalid-status',
         ])->assertStatus(422)
         ->assertJsonValidationErrors('status');
+});
+
+test('admins can update business types', function () {
+    $admin = User::factory()->admin()->create();
+    $type = BusinessType::factory()->create();
+    $business = Business::factory()->create();
+
+    $this->withToken(adminBusinessToken($admin))
+        ->patchJson("/api/admin/businesses/{$business->id}", [
+            'business_type_id' => $type->id,
+        ])->assertOk()
+        ->assertJsonPath('data.business_type_id', $type->id);
+
+    expect($business->refresh()->business_type_id)->toBe($type->id);
 });
