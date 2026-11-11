@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\BusinessUserRole;
+use App\Enums\BusinessUserStatus;
 use Database\Factories\BusinessUserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -25,6 +26,7 @@ class BusinessUser extends Model
         return [
             'role' => BusinessUserRole::class,
             'is_primary_contact' => 'boolean',
+            'status' => BusinessUserStatus::class,
         ];
     }
 

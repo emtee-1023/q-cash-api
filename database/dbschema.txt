@@ -149,6 +149,25 @@ Table business_users {
   }
 }
 
+
+Table business_invitations {
+  id bigint [pk, increment]
+  business_id bigint [not null]
+  invited_by_user_id bigint [not null]
+  user_id bigint
+  phone_number varchar(30) [not null]
+  name varchar(255)
+  role varchar(30) [not null, note: 'administrator, staff']
+  accepted_at timestamp
+  created_at timestamp
+  updated_at timestamp
+
+  Indexes {
+    (business_id, phone_number) [unique]
+    (phone_number, accepted_at)
+  }
+}
+
 // =====================================================
 // 2. PAYMENT CHANNELS AND ACCOUNTS
 // =====================================================
@@ -657,6 +676,9 @@ Ref: businesses.ward_id > wards.id
 // Business management
 Ref: business_users.business_id > businesses.id
 Ref: business_users.user_id > users.id
+Ref: business_invitations.business_id > businesses.id
+Ref: business_invitations.invited_by_user_id > users.id
+Ref: business_invitations.user_id > users.id
 
 // Payment accounts
 Ref: payment_accounts.business_id > businesses.id
