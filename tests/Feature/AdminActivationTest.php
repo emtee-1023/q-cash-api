@@ -18,6 +18,17 @@ function adminBearerToken(User $admin): string
     return $admin->createToken(AdminToken::NAME, [AdminToken::ABILITY])->plainTextToken;
 }
 
+function adminActivationOtpFor(string $phoneNumber): string
+{
+    $message = app(SmsSender::class)->lastMessageFor($phoneNumber);
+
+    if ($message === null || ! preg_match('/(\d{6})/', $message, $matches)) {
+        throw new RuntimeException('No admin activation OTP was sent.');
+    }
+
+    return $matches[1];
+}
+
 test('an admin can grant admin access and send an activation otp', function () {
     $admin = User::factory()->admin()->create();
     $user = User::factory()->create();
@@ -111,4 +122,54 @@ test('the bootstrap command promotes an existing user to activated admin', funct
 
     expect($user->is_admin)->toBeTrue();
     expect($user->admin_activated_at)->not->toBeNull();
+});
+
+test('a pending admin can resend an expired activation otp', function () {
+    $admin = User::factory()->admin()->create();
+    $user = User::factory()->create();
+
+    $this->withToken(adminBearerToken($admin))
+        ->postJson(route('admin.users.grant-admin', $user))
+        ->assertOk();
+
+    $oldOtp = adminActivationOtpFor($user->phone_number);
+
+    $this->postJson('/api/admin/activate/resend-otp', [
+        'phone_number' => $user->phone_number,
+    ])->assertOk()
+        ->assertJsonPath('message', 'If an admin activation is pending, a new verification code has been sent.');
+
+    $newOtp = adminActivationOtpFor($user->phone_number);
+
+    $this->postJson('/api/admin/activate', [
+        'phone_number' => $user->phone_number,
+        'otp' => $oldOtp,
+        'password' => 'new-admin-password',
+        'password_confirmation' => 'new-admin-password',
+    ])->assertStatus(422)
+        ->assertJsonValidationErrors('otp');
+
+    $this->postJson('/api/admin/activate', [
+        'phone_number' => $user->phone_number,
+        'otp' => $newOtp,
+        'password' => 'new-admin-password',
+        'password_confirmation' => 'new-admin-password',
+    ])->assertOk();
+
+    expect($user->refresh()->admin_activated_at)->not->toBeNull();
+});
+
+test('admin activation otp resend is generic for non pending accounts', function () {
+    $activatedAdmin = User::factory()->admin()->create();
+    $normalUser = User::factory()->create();
+    $unknownPhone = '254799999999';
+
+    foreach ([$activatedAdmin->phone_number, $normalUser->phone_number, $unknownPhone] as $phoneNumber) {
+        $this->postJson('/api/admin/activate/resend-otp', [
+            'phone_number' => $phoneNumber,
+        ])->assertOk()
+            ->assertJsonPath('message', 'If an admin activation is pending, a new verification code has been sent.');
+
+        expect(app(SmsSender::class)->lastMessageFor($phoneNumber))->toBeNull();
+    }
 });

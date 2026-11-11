@@ -21,6 +21,21 @@ class AdminActivationService
         $this->otpService->send($user->phone_number);
     }
 
+    public function resendOtp(string $phoneNumber): void
+    {
+        $phoneNumber = PhoneNumber::normalize($phoneNumber);
+
+        $user = User::query()
+            ->where('phone_number', $phoneNumber)
+            ->where('is_admin', true)
+            ->whereNull('admin_activated_at')
+            ->first();
+
+        if ($user !== null) {
+            $this->otpService->send($phoneNumber);
+        }
+    }
+
     public function activate(string $phoneNumber, string $otp, string $password): bool
     {
         $phoneNumber = PhoneNumber::normalize($phoneNumber);
