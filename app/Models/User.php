@@ -67,6 +67,14 @@ class User extends Authenticatable
     }
 
     /**
+     * @return HasMany<EmailVerificationCode, $this>
+     */
+    public function emailVerificationCodes(): HasMany
+    {
+        return $this->hasMany(EmailVerificationCode::class);
+    }
+
+    /**
      * @return HasMany<BusinessUser, $this>
      */
     public function businessUsers(): HasMany

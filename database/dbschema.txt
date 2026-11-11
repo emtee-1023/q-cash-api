@@ -37,6 +37,23 @@ Table users {
   Note: 'Reference stub only. Preserve all existing columns and package migrations.'
 }
 
+Table email_verification_codes {
+  id bigint [pk, increment]
+  user_id bigint [not null]
+  email varchar(255) [not null]
+  otp_hash varchar(255) [not null]
+  expires_at timestamp [not null]
+  attempts tinyint [not null, default: 0]
+  verified_at timestamp
+  created_at timestamp
+  updated_at timestamp
+
+  Indexes {
+    (user_id, email)
+    expires_at
+  }
+}
+
 // =====================================================
 // 0. KENYA LOCATION MASTER DATA
 // =====================================================
@@ -630,6 +647,9 @@ Table provider_webhook_events {
 // =====================================================
 // RELATIONSHIPS
 // =====================================================
+
+// Email verification
+Ref: email_verification_codes.user_id > users.id
 
 // Location master data
 Ref: sub_counties.county_id > counties.id

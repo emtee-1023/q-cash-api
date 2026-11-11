@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\BusinessTypeController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\OfferController;
 use App\Http\Controllers\Api\PaymentAccountController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RepaymentController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -18,9 +19,16 @@ use App\Http\Controllers\Test;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user', fn (Request $request) => $request->user())->name('user.show');
+    Route::patch('/user', [ProfileController::class, 'update'])->name('user.update');
+    Route::post('/user/email/verification-code', [ProfileController::class, 'sendEmailVerification'])
+        ->middleware('throttle:6,1')
+        ->name('user.email.verification-code');
+    Route::post('/user/email/verify', [ProfileController::class, 'verifyEmail'])
+        ->middleware('throttle:6,1')
+        ->name('user.email.verify');
+});
 
 Route::get('/test', [Test::class, 'test']);
 Route::post('/testsms', [Test::class, 'sendSms']);
