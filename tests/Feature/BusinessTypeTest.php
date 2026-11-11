@@ -48,12 +48,16 @@ test('the business type seeder backfills existing businesses', function () {
     expect($business->businessType->slug)->toBe('general-shop');
 });
 
-test('the qcash seeder links every business to a business type', function () {
+test('the qcash seeder links every business to a business type and location', function () {
     $this->seed(QCashSeeder::class);
 
     expect(Business::query()->count())->toBe(17);
     expect(Business::query()->whereNull('business_type_id')->count())->toBe(0);
     expect(Business::query()->whereHas('businessType')->count())->toBe(17);
+    expect(Business::query()->where('has_physical_location', true)->whereNull('county_id')->count())->toBe(0);
+    expect(Business::query()->where('has_physical_location', true)->whereNull('sub_county_id')->count())->toBe(0);
+    expect(Business::query()->where('has_physical_location', false)->count())->toBe(1);
+    expect(Business::query()->whereNotNull('ward_id')->count())->toBe(1);
 });
 
 test('business creation requires a business type', function () {

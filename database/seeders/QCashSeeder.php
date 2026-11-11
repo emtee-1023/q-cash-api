@@ -13,14 +13,17 @@ use App\Models\AdvanceLedgerEntry;
 use App\Models\AdvanceOffer;
 use App\Models\Business;
 use App\Models\BusinessType;
+use App\Models\County;
 use App\Models\DecisionPolicy;
 use App\Models\Disbursement;
 use App\Models\EraAssessment;
 use App\Models\FinancingPartner;
 use App\Models\ModelVersion;
 use App\Models\RepaymentCollection;
+use App\Models\SubCounty;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Models\Ward;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
@@ -75,6 +78,14 @@ class QCashSeeder extends Seeder
         $this->now = now()->startOfDay();
 
         $this->call(BusinessTypeSeeder::class);
+
+        if (
+            County::query()->doesntExist()
+            || SubCounty::query()->doesntExist()
+            || Ward::query()->doesntExist()
+        ) {
+            $this->call(LocationSeeder::class);
+        }
 
         $businessTypes = BusinessType::query()->pluck('id', 'slug');
         $users = $this->seedUsers();
@@ -211,6 +222,23 @@ class QCashSeeder extends Seeder
     private function seedBusiness(array $scenario, array $users, Collection $businessTypes): Business
     {
         $b = $scenario['business'];
+        $hasPhysicalLocation = $b['has_physical_location'] ?? true;
+
+        $county = $hasPhysicalLocation
+            ? County::query()->where('name', $b['county'])->first()
+            : null;
+        $subCounty = $county !== null
+            ? SubCounty::query()
+                ->where('county_id', $county->id)
+                ->where('name', $b['town'])
+                ->first()
+            : null;
+        $ward = $subCounty !== null && isset($b['ward'])
+            ? Ward::query()
+                ->where('sub_county_id', $subCounty->id)
+                ->where('name', $b['ward'])
+                ->first()
+            : null;
 
         $business = Business::create([
             'business_name' => $b['name'],
@@ -220,9 +248,15 @@ class QCashSeeder extends Seeder
             'registration_number' => sprintf('REG-%06d', $scenario['seq']),
             'phone_number' => sprintf('2547901%05d', $scenario['seq']),
             'email' => sprintf('acme%03d@example.test', $scenario['seq']),
-            'county' => $b['county'],
-            'town' => $b['town'],
-            'physical_address' => $b['town'].', '.$b['county'].', Kenya',
+            'county' => $hasPhysicalLocation ? $county?->name : null,
+            'town' => $hasPhysicalLocation ? $subCounty?->name : null,
+            'has_physical_location' => $hasPhysicalLocation,
+            'county_id' => $county?->id,
+            'sub_county_id' => $subCounty?->id,
+            'ward_id' => $ward?->id,
+            'physical_address' => $hasPhysicalLocation && $county !== null && $subCounty !== null
+                ? "{$subCounty->name}, {$county->name}, Kenya"
+                : null,
             'operating_since' => $this->now->copy()->subDays($b['operating_since_days'])->toDateString(),
             'status' => $b['status'],
         ]);
@@ -244,7 +278,7 @@ class QCashSeeder extends Seeder
             ]);
         }
 
-        // Payment accounts: a Till for most, a Paybill for some, a Bank for a couple.
+        // Payment accounts: a Till for most, a Paybill for some.
         $business->paymentAccounts()->create([
             'provider' => 'Safaricom',
             'channel_type' => 'till',
@@ -931,7 +965,7 @@ class QCashSeeder extends Seeder
                 'tx_min' => 2,
                 'tx_max' => 6,
                 'extras' => ['refunds' => 0, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 0, 'missing_ids' => 0, 'unknown_fraction' => 0],
-                'business' => ['name' => 'Acme Hardware 004', 'type' => 'retail', 'category' => 'hardware', 'county' => 'Nakuru', 'town' => 'Nakuru Town', 'operating_since_days' => 1000, 'status' => 'active'],
+                'business' => ['name' => 'Acme Hardware 004', 'type' => 'retail', 'category' => 'hardware', 'county' => 'Nakuru', 'town' => 'Nakuru East', 'operating_since_days' => 1000, 'status' => 'active'],
                 'assessment' => ['status' => 'ineligible', 'reliability' => '28.0000', 'advance_rate' => 0.0, 'recovery_rate_bps' => 1000, 'reason_codes' => ['LOW_RELIABILITY_SCORE', 'DECLINING_REVENUE'], 'warnings' => ['Sustained revenue decline']],
                 'advance' => null,
             ],
@@ -946,7 +980,7 @@ class QCashSeeder extends Seeder
                 'tx_min' => 3,
                 'tx_max' => 8,
                 'extras' => ['refunds' => 0, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 0, 'missing_ids' => 0, 'unknown_fraction' => 0],
-                'business' => ['name' => 'Acme Boutique 005', 'type' => 'retail', 'category' => 'fashion', 'county' => 'Eldoret', 'town' => 'Uasin Gishu', 'operating_since_days' => 600, 'status' => 'active'],
+                'business' => ['name' => 'Acme Boutique 005', 'type' => 'retail', 'category' => 'fashion', 'county' => 'Uasin Gishu', 'town' => 'Kapseret', 'operating_since_days' => 600, 'status' => 'active'],
                 'assessment' => ['status' => 'eligible', 'reliability' => '64.0000', 'advance_rate' => 0.30, 'recovery_rate_bps' => 1000, 'reason_codes' => ['SUFFICIENT_TRANSACTION_HISTORY', 'WEEKLY_PATTERN'], 'warnings' => []],
                 'advance' => ['state' => 'overdue', 'days_ago' => 45, 'repaid_fraction' => 0.3, 'adjust_terms' => false],
             ],
@@ -961,7 +995,7 @@ class QCashSeeder extends Seeder
                 'tx_min' => 3,
                 'tx_max' => 8,
                 'extras' => ['refunds' => 0, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 0, 'missing_ids' => 0, 'unknown_fraction' => 0],
-                'business' => ['name' => 'Acme Agrovet 006', 'type' => 'wholesale', 'category' => 'agrovet', 'county' => 'Thika', 'town' => 'Kiambu', 'operating_since_days' => 800, 'status' => 'active'],
+                'business' => ['name' => 'Acme Agrovet 006', 'type' => 'wholesale', 'category' => 'agrovet', 'county' => 'Kiambu', 'town' => 'Thika Town', 'operating_since_days' => 800, 'status' => 'active'],
                 'assessment' => ['status' => 'eligible', 'reliability' => '61.0000', 'advance_rate' => 0.30, 'recovery_rate_bps' => 1000, 'reason_codes' => ['SUFFICIENT_TRANSACTION_HISTORY', 'MONTHLY_PATTERN'], 'warnings' => []],
                 'advance' => ['state' => 'defaulted', 'days_ago' => 60, 'repaid_fraction' => 0.15, 'adjust_terms' => false],
             ],
@@ -976,7 +1010,7 @@ class QCashSeeder extends Seeder
                 'tx_min' => 1,
                 'tx_max' => 5,
                 'extras' => ['refunds' => 0, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 0, 'missing_ids' => 0, 'unknown_fraction' => 0],
-                'business' => ['name' => 'Acme Kiosk 007', 'type' => 'retail', 'category' => 'kiosk', 'county' => 'Kericho', 'town' => 'Kericho', 'operating_since_days' => 500, 'status' => 'active'],
+                'business' => ['name' => 'Acme Kiosk 007', 'type' => 'retail', 'category' => 'kiosk', 'county' => 'Kericho', 'town' => 'Ainamoi', 'operating_since_days' => 500, 'status' => 'active'],
                 'assessment' => ['status' => 'ineligible', 'reliability' => '35.0000', 'advance_rate' => 0.0, 'recovery_rate_bps' => 1000, 'reason_codes' => ['LOW_RELIABILITY_SCORE', 'IRREGULAR_REVENUE'], 'warnings' => ['Many zero-revenue days']],
                 'advance' => null,
             ],
@@ -1006,7 +1040,7 @@ class QCashSeeder extends Seeder
                 'tx_min' => 3,
                 'tx_max' => 7,
                 'extras' => ['refunds' => 0, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 3, 'missing_ids' => 2, 'unknown_fraction' => 0],
-                'business' => ['name' => 'Acme Electronics 009', 'type' => 'retail', 'category' => 'electronics', 'county' => 'Mombasa', 'town' => 'Nyali', 'operating_since_days' => 600, 'status' => 'active'],
+                'business' => ['name' => 'Acme Electronics 009', 'type' => 'retail', 'category' => 'electronics', 'county' => 'Mombasa', 'town' => 'Nyali', 'has_physical_location' => false, 'operating_since_days' => 600, 'status' => 'active'],
                 'assessment' => ['status' => 'manual_review', 'reliability' => '55.0000', 'advance_rate' => 0.0, 'recovery_rate_bps' => 1000, 'reason_codes' => ['ANOMALOUS_TRANSACTIONS'], 'warnings' => ['Large sales and duplicate provider ids flagged for review']],
                 'advance' => null,
             ],
@@ -1083,7 +1117,7 @@ class QCashSeeder extends Seeder
                 'tx_min' => 8,
                 'tx_max' => 15,
                 'extras' => ['refunds' => 0, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 0, 'missing_ids' => 0, 'unknown_fraction' => 0],
-                'business' => ['name' => 'Acme Mama Mboga 014', 'type' => 'service', 'category' => 'greengrocer', 'county' => 'Nairobi', 'town' => 'Embakasi', 'operating_since_days' => 600, 'status' => 'active'],
+                'business' => ['name' => 'Acme Mama Mboga 014', 'type' => 'service', 'category' => 'greengrocer', 'county' => 'Nairobi', 'town' => 'Embakasi Central', 'operating_since_days' => 600, 'status' => 'active'],
                 'assessment' => ['status' => 'eligible', 'reliability' => '74.0000', 'advance_rate' => 0.30, 'recovery_rate_bps' => 1000, 'reason_codes' => ['HIGH_FREQUENCY', 'CONSISTENT_REVENUE'], 'warnings' => []],
                 'advance' => ['state' => 'active', 'days_ago' => 18, 'repaid_fraction' => 0.6, 'adjust_terms' => false],
             ],
@@ -1099,7 +1133,7 @@ class QCashSeeder extends Seeder
                 'tx_min' => 1,
                 'tx_max' => 3,
                 'extras' => ['refunds' => 0, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 0, 'missing_ids' => 0, 'unknown_fraction' => 0],
-                'business' => ['name' => 'Acme Boda Boda 015', 'type' => 'service', 'category' => 'transport', 'county' => 'Kisumu', 'town' => 'Kondele', 'operating_since_days' => 700, 'status' => 'active'],
+                'business' => ['name' => 'Acme Boda Boda 015', 'type' => 'service', 'category' => 'transport', 'county' => 'Kisumu', 'town' => 'Kisumu Central', 'ward' => 'Kondele', 'operating_since_days' => 700, 'status' => 'active'],
                 'assessment' => ['status' => 'eligible', 'reliability' => '66.0000', 'advance_rate' => 0.30, 'recovery_rate_bps' => 1000, 'reason_codes' => ['SUFFICIENT_TRANSACTION_HISTORY'], 'warnings' => []],
                 'advance' => ['state' => 'settled', 'days_ago' => 50, 'repaid_fraction' => 1.0, 'adjust_terms' => false],
             ],
@@ -1129,7 +1163,7 @@ class QCashSeeder extends Seeder
                 'tx_min' => 2,
                 'tx_max' => 5,
                 'extras' => ['refunds' => 0, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 0, 'missing_ids' => 0, 'unknown_fraction' => 0],
-                'business' => ['name' => 'Acme Suspended 017', 'type' => 'retail', 'category' => 'misc', 'county' => 'Eldoret', 'town' => 'Eldoret', 'operating_since_days' => 300, 'status' => 'suspended'],
+                'business' => ['name' => 'Acme Suspended 017', 'type' => 'retail', 'category' => 'misc', 'county' => 'Uasin Gishu', 'town' => 'Kapseret', 'operating_since_days' => 300, 'status' => 'suspended'],
                 'assessment' => ['status' => 'eligible', 'reliability' => '50.0000', 'advance_rate' => 0.0, 'recovery_rate_bps' => 1000, 'reason_codes' => [], 'warnings' => []],
                 'advance' => null,
             ],
