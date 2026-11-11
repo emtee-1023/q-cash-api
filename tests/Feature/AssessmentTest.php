@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Business;
+use App\Models\BusinessType;
 use App\Models\EraAssessment;
 use App\Models\Transaction;
 use App\Services\Assessments\AssessmentService;
@@ -61,6 +62,25 @@ test('an assessment is requested from python and converted to minor units', func
     expect($assessment->reliability_score)->toBe('69.7400');
     expect($assessment->input_snapshot)->toHaveKeys(['business_id', 'transactions']);
     expect($assessment->output_snapshot)->toHaveKey('assessment_status');
+});
+
+test('the assessment payload uses the business type slug and category', function () {
+    config(['services.ml_api.url' => 'http://ml.test']);
+
+    Http::fake([
+        'http://ml.test/api/v1/assessments' => Http::response(fakeEligibleAssessmentResponse(), 200),
+    ]);
+
+    $businessType = BusinessType::factory()->create([
+        'slug' => 'mama-mboga',
+        'category' => 'food',
+    ]);
+    $business = Business::factory()->create(['business_type_id' => $businessType->id]);
+
+    app(AssessmentService::class)->request($business);
+
+    Http::assertSent(fn ($request) => $request['business_profile']['business_type'] === 'mama-mboga'
+        && $request['business_profile']['sector'] === 'food');
 });
 
 test('transaction amounts are sent to python in signed major units', function () {

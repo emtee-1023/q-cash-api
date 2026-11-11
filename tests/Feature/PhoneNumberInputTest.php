@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\NormalizePhoneNumberInput;
 use App\Models\Business;
+use App\Models\BusinessType;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -143,9 +144,11 @@ test('reset password accepts supported phone formats', function (string $phoneNu
 
 test('business phone numbers are normalized before storage', function (string $phoneNumber) {
     Sanctum::actingAs(User::factory()->create());
+    $businessType = BusinessType::factory()->create();
 
     $this->postJson('/api/businesses', [
         'business_name' => 'Fresh Market',
+        'business_type_id' => $businessType->id,
         'phone_number' => $phoneNumber,
     ])->assertCreated();
 

@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreBusinessRequest;
+use App\Http\Resources\BusinessDetailResource;
 use App\Http\Resources\BusinessResource;
 use App\Models\Business;
+use App\Models\County;
+use App\Models\SubCounty;
 use Illuminate\Http\Request;
 
 /**
@@ -20,7 +23,9 @@ class BusinessController extends Controller
      */
     public function index(Request $request)
     {
-        $businesses = $request->user()->businesses()->get();
+        $businesses = $request->user()->businesses()
+            ->with(['businessType', 'countyLocation', 'subCounty', 'ward'])
+            ->get();
 
         return BusinessResource::collection($businesses);
     }
@@ -32,7 +37,29 @@ class BusinessController extends Controller
      */
     public function store(StoreBusinessRequest $request)
     {
-        $business = Business::create($request->validated());
+        $attributes = $request->validated();
+        $hasPhysicalLocation = $request->boolean('has_physical_location');
+
+        if ($hasPhysicalLocation) {
+            if (isset($attributes['county_id'])) {
+                $attributes['county'] = County::find($attributes['county_id'])?->name;
+            }
+
+            if (isset($attributes['sub_county_id'])) {
+                $attributes['town'] = SubCounty::find($attributes['sub_county_id'])?->name;
+            }
+        } else {
+            $attributes['county_id'] = null;
+            $attributes['sub_county_id'] = null;
+            $attributes['ward_id'] = null;
+            $attributes['county'] = null;
+            $attributes['town'] = null;
+            $attributes['physical_address'] = null;
+        }
+
+        $attributes['has_physical_location'] = $hasPhysicalLocation;
+
+        $business = Business::create($attributes);
 
         $business->businessUsers()->create([
             'user_id' => $request->user()->id,
@@ -41,7 +68,9 @@ class BusinessController extends Controller
             'status' => 'active',
         ]);
 
-        return (new BusinessResource($business))
+        $business->load(['businessType', 'countyLocation', 'subCounty', 'ward']);
+
+        return (new BusinessDetailResource($business))
             ->response()
             ->setStatusCode(201);
     }
@@ -55,6 +84,8 @@ class BusinessController extends Controller
     {
         $this->authorize('view', $business);
 
-        return new BusinessResource($business);
+        $business->load(['businessType', 'countyLocation', 'subCounty', 'ward']);
+
+        return new BusinessDetailResource($business);
     }
 }

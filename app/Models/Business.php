@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\BusinessKycStatus;
 use App\Enums\BusinessStatus;
 use App\Models\Concerns\HasPublicId;
 use App\Support\PhoneNumber;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -17,16 +19,20 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Fillable([
     'public_id',
     'business_name',
-    'business_type',
-    'business_category',
+    'business_type_id',
     'registration_number',
     'phone_number',
     'email',
     'county',
     'town',
+    'has_physical_location',
+    'county_id',
+    'sub_county_id',
+    'ward_id',
     'physical_address',
     'operating_since',
     'status',
+    'kyc_status',
 ])]
 class Business extends Model
 {
@@ -36,11 +42,38 @@ class Business extends Model
     use HasPublicId;
     use SoftDeletes;
 
+    /**
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'kyc_status' => 'unverified',
+    ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Business $business): void {
+            if (blank($business->collection_account_number)) {
+                $business->collection_account_number = static::generateCollectionAccountNumber();
+            }
+        });
+    }
+
+    protected static function generateCollectionAccountNumber(): string
+    {
+        do {
+            $accountNumber = (string) random_int(100000, 999999);
+        } while (static::withTrashed()->where('collection_account_number', $accountNumber)->exists());
+
+        return $accountNumber;
+    }
+
     protected function casts(): array
     {
         return [
             'operating_since' => 'date',
             'status' => BusinessStatus::class,
+            'kyc_status' => BusinessKycStatus::class,
+            'has_physical_location' => 'boolean',
         ];
     }
 
@@ -51,6 +84,38 @@ class Business extends Model
                 ? null
                 : PhoneNumber::normalize($value),
         );
+    }
+
+    /**
+     * @return BelongsTo<BusinessType, $this>
+     */
+    public function businessType(): BelongsTo
+    {
+        return $this->belongsTo(BusinessType::class);
+    }
+
+    /**
+     * @return BelongsTo<County, $this>
+     */
+    public function countyLocation(): BelongsTo
+    {
+        return $this->belongsTo(County::class, 'county_id');
+    }
+
+    /**
+     * @return BelongsTo<SubCounty, $this>
+     */
+    public function subCounty(): BelongsTo
+    {
+        return $this->belongsTo(SubCounty::class, 'sub_county_id');
+    }
+
+    /**
+     * @return BelongsTo<Ward, $this>
+     */
+    public function ward(): BelongsTo
+    {
+        return $this->belongsTo(Ward::class, 'ward_id');
     }
 
     /**

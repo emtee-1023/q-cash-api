@@ -47,4 +47,8 @@ return [
         'key' => env('QCASH_ML_API_KEY'),
     ],
 
+    'mpesa' => [
+        'paybill_number' => env('MPESA_PAYBILL_NUMBER'),
+    ],
+
 ];

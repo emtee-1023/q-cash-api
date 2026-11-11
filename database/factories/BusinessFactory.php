@@ -2,8 +2,10 @@
 
 namespace Database\Factories;
 
+use App\Enums\BusinessKycStatus;
 use App\Enums\BusinessStatus;
 use App\Models\Business;
+use App\Models\BusinessType;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -15,16 +17,20 @@ class BusinessFactory extends Factory
     {
         return [
             'business_name' => fake()->company(),
-            'business_type' => fake()->randomElement(['retail', 'wholesale', 'service']),
-            'business_category' => fake()->randomElement(['shop', 'food', 'transport']),
+            'business_type_id' => BusinessType::factory(),
             'registration_number' => fake()->optional()->numerify('REG-#####'),
             'phone_number' => '254'.fake()->numerify('7########'),
             'email' => fake()->unique()->safeEmail(),
             'county' => fake()->city(),
             'town' => fake()->city(),
+            'has_physical_location' => true,
+            'county_id' => null,
+            'sub_county_id' => null,
+            'ward_id' => null,
             'physical_address' => fake()->optional()->address(),
             'operating_since' => fake()->optional()->date(),
             'status' => BusinessStatus::Pending->value,
+            'kyc_status' => BusinessKycStatus::Unverified->value,
         ];
     }
 
