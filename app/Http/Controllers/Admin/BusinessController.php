@@ -11,6 +11,7 @@ use App\Http\Requests\Admin\UpdateBusinessStatusRequest;
 use App\Http\Resources\AdminBusinessDetailResource;
 use App\Http\Resources\BusinessResource;
 use App\Models\Business;
+use App\Services\Businesses\UpdateBusinessProfile;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -54,19 +55,12 @@ class BusinessController extends Controller
         return new AdminBusinessDetailResource($this->loadBusiness($business));
     }
 
-    public function update(UpdateBusinessRequest $request, Business $business): AdminBusinessDetailResource
-    {
-        $attributes = [];
-
-        if ($request->filled('business_name')) {
-            $attributes['business_name'] = $request->string('business_name')->toString();
-        }
-
-        if ($request->filled('business_type_id')) {
-            $attributes['business_type_id'] = $request->integer('business_type_id');
-        }
-
-        $business->update($attributes);
+    public function update(
+        UpdateBusinessRequest $request,
+        Business $business,
+        UpdateBusinessProfile $profileUpdater,
+    ): AdminBusinessDetailResource {
+        $profileUpdater->handle($business, $request->validated());
 
         return (new AdminBusinessDetailResource($this->loadBusiness($business)))
             ->additional(['message' => 'Business updated.']);

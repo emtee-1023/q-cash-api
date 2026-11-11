@@ -2,44 +2,25 @@
 
 namespace App\Http\Requests\Admin;
 
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\Validator;
+use App\Http\Requests\UpdateBusinessRequest as BaseUpdateBusinessRequest;
 
-class UpdateBusinessRequest extends FormRequest
+class UpdateBusinessRequest extends BaseUpdateBusinessRequest
 {
-    public function authorize(): bool
-    {
-        return true;
-    }
-
     /**
      * @return array<string, mixed>
      */
     public function rules(): array
     {
-        return [
-            'business_name' => ['sometimes', 'required', 'string', 'max:255'],
-            'business_type_id' => [
-                'sometimes',
-                'required',
-                'integer',
-                Rule::exists('business_types', 'id')->where('is_active', true),
-            ],
-        ];
+        return array_merge(parent::rules(), [
+            'registration_number' => ['sometimes', 'nullable', 'string', 'max:100'],
+        ]);
     }
 
     /**
-     * @return array<int, callable>
+     * @return array<int, string>
      */
-    public function after(): array
+    protected function profileFields(): array
     {
-        return [
-            function (Validator $validator): void {
-                if (! $this->hasAny(['business_name', 'business_type_id'])) {
-                    $validator->errors()->add('business_name', 'At least one business field is required.');
-                }
-            },
-        ];
+        return [...parent::profileFields(), 'registration_number'];
     }
 }

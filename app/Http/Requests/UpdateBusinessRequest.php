@@ -61,22 +61,28 @@ class UpdateBusinessRequest extends FormRequest
     {
         return [
             function (Validator $validator): void {
-                $fields = [
-                    'business_name',
-                    'business_type_id',
-                    'has_physical_location',
-                    'county_id',
-                    'sub_county_id',
-                    'ward_id',
-                    'physical_address',
-                    'phone_number',
-                    'email',
-                ];
-
-                if (! $this->hasAny($fields)) {
+                if (! $this->hasAny($this->profileFields())) {
                     $validator->errors()->add('business_name', 'At least one business field is required.');
                 }
             },
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function profileFields(): array
+    {
+        return [
+            'business_name',
+            'business_type_id',
+            'has_physical_location',
+            'county_id',
+            'sub_county_id',
+            'ward_id',
+            'physical_address',
+            'phone_number',
+            'email',
         ];
     }
 }
