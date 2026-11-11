@@ -3,9 +3,13 @@
 namespace App\Providers;
 
 use App\Services\Assessments\PythonAssessmentClient;
+use App\Services\Auth\AuthService;
+use App\Services\Auth\OtpService;
 use App\Services\Sms\AfricaTalkingSmsSender;
 use Illuminate\Support\ServiceProvider;
 use Markt\LaravelAuth\Contracts\SmsSender;
+use Markt\LaravelAuth\Services\AuthService as BaseAuthService;
+use Markt\LaravelAuth\Services\OtpService as BaseOtpService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,6 +24,9 @@ class AppServiceProvider extends ServiceProvider
                 config('services.ml_api.key'),
             );
         });
+
+        $this->app->bind(BaseAuthService::class, AuthService::class);
+        $this->app->bind(BaseOtpService::class, OtpService::class);
     }
 
     /**

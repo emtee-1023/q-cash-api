@@ -3,9 +3,12 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\IdentificationType;
+use App\Support\PhoneNumber;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,7 +16,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'phone_number', 'phone_verified_at'])]
+#[Fillable(['name', 'email', 'password', 'phone_number', 'phone_verified_at', 'id_type', 'identification_number', 'date_of_birth'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -31,7 +34,18 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'phone_verified_at' => 'datetime',
             'password' => 'hashed',
+            'id_type' => IdentificationType::class,
+            'date_of_birth' => 'date',
         ];
+    }
+
+    protected function phoneNumber(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => $value === null || $value === ''
+                ? null
+                : PhoneNumber::normalize($value),
+        );
     }
 
     /**

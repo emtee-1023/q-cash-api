@@ -95,9 +95,9 @@ class QCashSeeder extends Seeder
     private function seedUsers(): array
     {
         return collect([
-            ['name' => 'Demo Owner 001', 'phone' => '+254790000001'],
-            ['name' => 'Demo Owner 002', 'phone' => '+254790000002'],
-            ['name' => 'Demo Staff 001', 'phone' => '+254790000003'],
+            ['name' => 'Demo Owner 001', 'phone' => '254790000001'],
+            ['name' => 'Demo Owner 002', 'phone' => '254790000002'],
+            ['name' => 'Demo Staff 001', 'phone' => '254790000003'],
         ])->map(fn ($u, $i) => User::factory()->create([
             'name' => $u['name'],
             'email' => sprintf('demo%03d@example.test', $i + 1),
@@ -193,7 +193,7 @@ class QCashSeeder extends Seeder
             'name' => $p['name'],
             'partner_type' => $p['type'],
             'contact_email' => sprintf('partner%03d@example.test', $i + 1),
-            'contact_phone' => sprintf('+2547900001%02d', $i + 1),
+            'contact_phone' => sprintf('2547900001%02d', $i + 1),
             'status' => 'active',
             'integration_config' => ['sandbox' => true],
         ]))->all();
@@ -212,7 +212,7 @@ class QCashSeeder extends Seeder
             'business_type' => $b['type'] ?? null,
             'business_category' => $b['category'] ?? null,
             'registration_number' => sprintf('REG-%06d', $scenario['seq']),
-            'phone_number' => sprintf('+2547901%05d', $scenario['seq']),
+            'phone_number' => sprintf('2547901%05d', $scenario['seq']),
             'email' => sprintf('acme%03d@example.test', $scenario['seq']),
             'county' => $b['county'],
             'town' => $b['town'],
