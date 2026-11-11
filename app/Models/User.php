@@ -17,7 +17,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable(['name', 'email', 'password', 'phone_number', 'phone_verified_at', 'id_type', 'identification_number', 'date_of_birth'])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden(['password', 'remember_token', 'is_admin', 'admin_activated_at'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -36,7 +36,14 @@ class User extends Authenticatable
             'password' => 'hashed',
             'id_type' => IdentificationType::class,
             'date_of_birth' => 'date',
+            'is_admin' => 'boolean',
+            'admin_activated_at' => 'datetime',
         ];
+    }
+
+    public function isActivatedAdmin(): bool
+    {
+        return $this->is_admin && $this->admin_activated_at !== null;
     }
 
     protected function phoneNumber(): Attribute

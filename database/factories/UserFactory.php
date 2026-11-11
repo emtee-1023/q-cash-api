@@ -38,6 +38,22 @@ class UserFactory extends Factory
         ];
     }
 
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_admin' => true,
+            'admin_activated_at' => now(),
+        ]);
+    }
+
+    public function pendingAdmin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_admin' => true,
+            'admin_activated_at' => null,
+        ]);
+    }
+
     /**
      * Indicate that the model's email address should be unverified.
      */

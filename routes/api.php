@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\Auth\AdminActivationController;
+use App\Http\Controllers\Admin\Auth\AdminLoginController;
+use App\Http\Controllers\Admin\BusinessController as AdminBusinessController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\AdvanceController;
 use App\Http\Controllers\Api\AssessmentController;
 use App\Http\Controllers\Api\BusinessController;
@@ -21,6 +25,34 @@ Route::get('/test', [Test::class, 'test']);
 Route::post('/testsms', [Test::class, 'sendSms']);
 
 Route::post('auth/register', [RegisterController::class, 'register']);
+
+Route::prefix('admin')->name('admin.')->group(function () {
+    Route::post('login', [AdminLoginController::class, 'login'])
+        ->middleware('throttle:6,1')
+        ->name('login');
+
+    Route::post('activate', [AdminActivationController::class, 'store'])
+        ->middleware('throttle:6,1')
+        ->name('activate');
+
+    Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+        Route::get('me', [AdminLoginController::class, 'me'])->name('me');
+        Route::post('logout', [AdminLoginController::class, 'logout'])->name('logout');
+
+        Route::get('businesses', [AdminBusinessController::class, 'index'])->name('businesses.index');
+        Route::get('businesses/{business}', [AdminBusinessController::class, 'show'])->name('businesses.show');
+        Route::patch('businesses/{business}/status', [AdminBusinessController::class, 'updateStatus'])
+            ->name('businesses.status');
+        Route::patch('businesses/{business}/kyc-status', [AdminBusinessController::class, 'updateKycStatus'])
+            ->name('businesses.kyc-status');
+
+        Route::get('users', [AdminUserController::class, 'index'])->name('users.index');
+        Route::post('users/{user}/grant-admin', [AdminUserController::class, 'grant'])
+            ->name('users.grant-admin');
+        Route::post('users/{user}/revoke-admin', [AdminUserController::class, 'revoke'])
+            ->name('users.revoke-admin');
+    });
+});
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('business-types', [BusinessTypeController::class, 'index']);

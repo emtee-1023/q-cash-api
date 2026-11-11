@@ -31,6 +31,9 @@ Table users {
   phone_verified_at timestamp [note: 'Managed by Markt/LaravelAuth']
   email varchar(255) [note: 'Existing nullable email column']
 
+  is_admin boolean [not null, default: false]
+  admin_activated_at timestamp
+
   Note: 'Reference stub only. Preserve all existing columns and package migrations.'
 }
 
