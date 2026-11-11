@@ -43,6 +43,10 @@ test('monetary columns are present on the key financial tables', function () {
     expect(Schema::hasColumns('advance_ledger_entries', ['amount_minor', 'entry_type']))->toBeTrue();
 });
 
+test('businesses track kyc status', function () {
+    expect(Schema::hasColumn('businesses', 'kyc_status'))->toBeTrue();
+});
+
 test('foreign keys are defined on the core relationships', function () {
     $expectations = [
         'businesses' => ['business_type_id'],

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\BusinessKycStatus;
 use App\Enums\BusinessStatus;
 use App\Models\Business;
 use App\Models\BusinessType;
@@ -25,6 +26,7 @@ class BusinessFactory extends Factory
             'physical_address' => fake()->optional()->address(),
             'operating_since' => fake()->optional()->date(),
             'status' => BusinessStatus::Pending->value,
+            'kyc_status' => BusinessKycStatus::Unverified->value,
         ];
     }
 

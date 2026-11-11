@@ -38,6 +38,7 @@ class BusinessResource extends JsonResource
             'physical_address' => $this->physical_address,
             'operating_since' => $this->operating_since?->toDateString(),
             'status' => $this->status?->value,
+            'kyc_status' => $this->kyc_status?->value,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

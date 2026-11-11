@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\BusinessKycStatus;
 use App\Models\Business;
 use App\Models\BusinessType;
 use App\Models\User;
@@ -21,12 +22,14 @@ test('creating a business attaches the authenticated user as owner', function ()
 
     $response->assertCreated()
         ->assertJsonPath('data.business_type_id', $businessType->id)
-        ->assertJsonPath('data.business_type.slug', $businessType->slug);
+        ->assertJsonPath('data.business_type.slug', $businessType->slug)
+        ->assertJsonPath('data.kyc_status', 'unverified');
 
     $business = Business::query()->first();
 
     expect($business->business_name)->toBe('Fresh Market');
     expect($business->business_type_id)->toBe($businessType->id);
+    expect($business->kyc_status)->toBe(BusinessKycStatus::Unverified);
     expect($business->businessUsers()->where('user_id', $user->id)->where('role', 'owner')->exists())->toBeTrue();
 });
 

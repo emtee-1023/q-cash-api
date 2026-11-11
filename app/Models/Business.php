@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\BusinessKycStatus;
 use App\Enums\BusinessStatus;
 use App\Models\Concerns\HasPublicId;
 use App\Support\PhoneNumber;
@@ -27,6 +28,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'physical_address',
     'operating_since',
     'status',
+    'kyc_status',
 ])]
 class Business extends Model
 {
@@ -36,11 +38,19 @@ class Business extends Model
     use HasPublicId;
     use SoftDeletes;
 
+    /**
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'kyc_status' => 'unverified',
+    ];
+
     protected function casts(): array
     {
         return [
             'operating_since' => 'date',
             'status' => BusinessStatus::class,
+            'kyc_status' => BusinessKycStatus::class,
         ];
     }
 
