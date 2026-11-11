@@ -28,6 +28,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 /**
  * Q-Cash synthetic seed data.
@@ -77,14 +78,13 @@ class QCashSeeder extends Seeder
         fake()->seed(self::SEED);
         $this->now = now()->startOfDay();
 
-        $this->call(BusinessTypeSeeder::class);
-
         if (
-            County::query()->doesntExist()
+            BusinessType::query()->doesntExist()
+            || County::query()->doesntExist()
             || SubCounty::query()->doesntExist()
             || Ward::query()->doesntExist()
         ) {
-            $this->call(LocationSeeder::class);
+            throw new RuntimeException('Run LocationSeeder and BusinessTypeSeeder before QCashSeeder.');
         }
 
         $businessTypes = BusinessType::query()->pluck('id', 'slug');

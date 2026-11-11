@@ -4,6 +4,7 @@ use App\Models\Business;
 use App\Models\BusinessType;
 use App\Models\User;
 use Database\Seeders\BusinessTypeSeeder;
+use Database\Seeders\LocationSeeder;
 use Database\Seeders\QCashSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -49,7 +50,11 @@ test('the business type seeder backfills existing businesses', function () {
 });
 
 test('the qcash seeder links every business to a business type and location', function () {
-    $this->seed(QCashSeeder::class);
+    $this->seed([
+        LocationSeeder::class,
+        BusinessTypeSeeder::class,
+        QCashSeeder::class,
+    ]);
 
     expect(Business::query()->count())->toBe(17);
     expect(Business::query()->whereNull('business_type_id')->count())->toBe(0);
