@@ -53,6 +53,9 @@ class BusinessResource extends JsonResource
             'status' => $this->status?->value,
             'kyc_status' => $this->kyc_status?->value,
             'collection_account_number' => $this->collection_account_number,
+            'wallet_balance_minor' => $this->relationLoaded('wallet') && $this->wallet !== null
+                ? $this->wallet->balance_minor
+                : 0,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

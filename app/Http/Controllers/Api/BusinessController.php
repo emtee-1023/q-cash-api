@@ -8,8 +8,6 @@ use App\Http\Requests\UpdateBusinessRequest;
 use App\Http\Resources\BusinessDetailResource;
 use App\Http\Resources\BusinessResource;
 use App\Models\Business;
-use App\Models\County;
-use App\Models\SubCounty;
 use App\Services\Businesses\UpdateBusinessProfile;
 use Illuminate\Http\Request;
 
@@ -26,7 +24,7 @@ class BusinessController extends Controller
     public function index(Request $request)
     {
         $businesses = $request->user()->businesses()
-            ->with(['businessType', 'countyLocation', 'subCounty', 'ward'])
+            ->with(['businessType', 'countyLocation', 'subCounty', 'ward', 'wallet'])
             ->get();
 
         return BusinessResource::collection($businesses);
@@ -60,7 +58,7 @@ class BusinessController extends Controller
             'status' => 'active',
         ]);
 
-        $business->load(['businessType', 'countyLocation', 'subCounty', 'ward']);
+        $business->load(['businessType', 'countyLocation', 'subCounty', 'ward', 'wallet']);
 
         return (new BusinessDetailResource($business))
             ->response()
@@ -76,7 +74,7 @@ class BusinessController extends Controller
 
         $profileUpdater->handle($business, $request->validated());
 
-        $business->load(['businessType', 'countyLocation', 'subCounty', 'ward']);
+        $business->load(['businessType', 'countyLocation', 'subCounty', 'ward', 'wallet']);
 
         return (new BusinessDetailResource($business))
             ->additional(['message' => 'Business updated.']);
@@ -91,7 +89,7 @@ class BusinessController extends Controller
     {
         $this->authorize('view', $business);
 
-        $business->load(['businessType', 'countyLocation', 'subCounty', 'ward']);
+        $business->load(['businessType', 'countyLocation', 'subCounty', 'ward', 'wallet']);
 
         return new BusinessDetailResource($business);
     }

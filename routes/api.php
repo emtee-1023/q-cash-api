@@ -17,6 +17,8 @@ use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RepaymentController;
 use App\Http\Controllers\Api\StkPushController;
 use App\Http\Controllers\Api\TransactionController;
+use App\Http\Controllers\Api\WalletController;
+use App\Http\Controllers\Api\WithdrawalController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Test;
 use App\Http\Controllers\Webhooks\MpesaB2cController;
@@ -106,6 +108,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('businesses/{business}', [BusinessController::class, 'update'])->name('businesses.update');
 
     Route::post('businesses/{business}/payment-accounts', [PaymentAccountController::class, 'store']);
+    Route::get('businesses/{business}/wallet', [WalletController::class, 'show'])
+        ->name('businesses.wallet.show');
+    Route::get('businesses/{business}/withdrawals', [WithdrawalController::class, 'index'])
+        ->name('businesses.withdrawals.index');
+    Route::post('businesses/{business}/withdrawals', [WithdrawalController::class, 'store'])
+        ->name('businesses.withdrawals.store');
     Route::post('businesses/{business}/stk-push', [StkPushController::class, 'store'])
         ->name('businesses.stk-push.store');
     Route::get('businesses/{business}/transactions', [TransactionController::class, 'index']);

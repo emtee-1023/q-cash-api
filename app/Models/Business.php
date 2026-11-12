@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
@@ -165,6 +166,22 @@ class Business extends Model
     public function stkPushRequests(): HasMany
     {
         return $this->hasMany(StkPushRequest::class);
+    }
+
+    /**
+     * @return HasOne<BusinessWallet, $this>
+     */
+    public function wallet(): HasOne
+    {
+        return $this->hasOne(BusinessWallet::class);
+    }
+
+    /**
+     * @return HasMany<BusinessWithdrawal, $this>
+     */
+    public function withdrawals(): HasMany
+    {
+        return $this->hasMany(BusinessWithdrawal::class);
     }
 
     /**
