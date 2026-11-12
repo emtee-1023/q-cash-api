@@ -7,6 +7,7 @@ use App\Http\Resources\AdvanceResource;
 use App\Models\Advance;
 use App\Models\Business;
 use App\Services\Advances\AdvanceService;
+use App\Services\Disbursements\MpesaB2cDisbursementService;
 use Illuminate\Http\Request;
 
 /**
@@ -14,7 +15,10 @@ use Illuminate\Http\Request;
  */
 class AdvanceController extends Controller
 {
-    public function __construct(private readonly AdvanceService $advances) {}
+    public function __construct(
+        private readonly AdvanceService $advances,
+        private readonly MpesaB2cDisbursementService $b2cDisbursements,
+    ) {}
 
     /**
      * List advances
@@ -58,14 +62,14 @@ class AdvanceController extends Controller
     /**
      * Request disbursement
      *
-     * Initiates disbursement of the advance principal and transitions the
-     * advance to the disbursing state.
+     * Sends the advance principal to the business owner's M-Pesa number via
+     * Safaricom B2C and transitions the advance to the disbursing state.
      */
     public function disburse(Advance $advance)
     {
         $this->authorize('manage', $advance);
 
-        $disbursement = $this->advances->requestDisbursement($advance);
+        $this->b2cDisbursements->disburse($advance);
 
         return new AdvanceResource($advance->refresh());
     }

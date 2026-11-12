@@ -26,7 +26,7 @@ class BusinessController extends Controller
         $kycStatus = $request->string('kyc_status')->toString();
 
         $businesses = Business::query()
-            ->with(['businessType', 'countyLocation', 'subCounty', 'ward'])
+            ->with(['businessType', 'countyLocation', 'subCounty', 'ward', 'wallet'])
             ->when($search !== '', function ($query) use ($search): void {
                 $query->where(function ($query) use ($search): void {
                     $query->where('business_name', 'like', "%{$search}%")
@@ -99,6 +99,7 @@ class BusinessController extends Controller
             'ward',
             'businessUsers.user',
             'paymentAccounts',
+            'wallet',
         ]);
     }
 }

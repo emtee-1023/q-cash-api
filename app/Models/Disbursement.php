@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'advance_id',
     'provider',
     'provider_reference',
+    'originator_conversation_id',
     'amount_minor',
     'status',
     'requested_at',

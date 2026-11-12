@@ -15,10 +15,16 @@ class AfricaTalkingSmsSender implements SmsSender
         $username = config('services.africastalking.username');
         $apiKey = config('services.africastalking.api_key');
 
+        if (blank($endpoint) || blank($username) || blank($apiKey)) {
+            throw new RuntimeException('Africa\'s Talking SMS is not configured.');
+        }
+
+        $recipientPhoneNumber = '+'.PhoneNumber::normalize($phoneNumber);
+
         $payload = [
             'username' => $username,
             'message' => $message,
-            'to' => '+'.PhoneNumber::normalize($phoneNumber),
+            'to' => $recipientPhoneNumber,
         ];
 
         $response = Http::asForm()
@@ -29,7 +35,7 @@ class AfricaTalkingSmsSender implements SmsSender
 
         if ($response->failed()) {
             throw new RuntimeException(
-                'Africa\'s Talking SMS request failed.'
+                'Africa\'s Talking SMS request failed with status '.$response->status().'.'
             );
         }
 

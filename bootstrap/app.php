@@ -17,7 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->api(prepend: [
             NormalizePhoneNumberInput::class,
-        ]);
+        ])
+            ->trustProxies(at: '*');
 
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,

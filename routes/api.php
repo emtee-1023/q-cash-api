@@ -15,9 +15,15 @@ use App\Http\Controllers\Api\OfferController;
 use App\Http\Controllers\Api\PaymentAccountController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RepaymentController;
+use App\Http\Controllers\Api\StkPushController;
 use App\Http\Controllers\Api\TransactionController;
+use App\Http\Controllers\Api\WalletController;
+use App\Http\Controllers\Api\WithdrawalController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Test;
+use App\Http\Controllers\Webhooks\MpesaB2cController;
+use App\Http\Controllers\Webhooks\MpesaC2bController;
+use App\Http\Controllers\Webhooks\MpesaStkController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -34,6 +40,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::get('/test', [Test::class, 'test']);
 Route::post('/testsms', [Test::class, 'sendSms']);
+
+Route::prefix('webhooks')->name('webhooks.')->group(function () {
+    Route::post('validation', [MpesaC2bController::class, 'validation'])->name('validation');
+    Route::post('confirmation', [MpesaC2bController::class, 'confirmation'])->name('confirmation');
+    Route::post('stk', MpesaStkController::class)->name('stk');
+    Route::post('b2c/result', [MpesaB2cController::class, 'result'])->name('b2c.result');
+    Route::post('b2c/timeout', [MpesaB2cController::class, 'timeout'])->name('b2c.timeout');
+});
 
 Route::post('auth/register', [RegisterController::class, 'register']);
 
@@ -94,6 +108,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('businesses/{business}', [BusinessController::class, 'update'])->name('businesses.update');
 
     Route::post('businesses/{business}/payment-accounts', [PaymentAccountController::class, 'store']);
+    Route::get('businesses/{business}/wallet', [WalletController::class, 'show'])
+        ->name('businesses.wallet.show');
+    Route::get('businesses/{business}/withdrawals', [WithdrawalController::class, 'index'])
+        ->name('businesses.withdrawals.index');
+    Route::post('businesses/{business}/withdrawals', [WithdrawalController::class, 'store'])
+        ->name('businesses.withdrawals.store');
+    Route::post('businesses/{business}/stk-push', [StkPushController::class, 'store'])
+        ->name('businesses.stk-push.store');
     Route::get('businesses/{business}/transactions', [TransactionController::class, 'index']);
     Route::post('businesses/{business}/transactions', [TransactionController::class, 'store']);
     Route::post('businesses/{business}/assessments', [AssessmentController::class, 'store']);

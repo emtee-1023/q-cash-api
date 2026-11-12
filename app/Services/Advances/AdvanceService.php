@@ -74,6 +74,14 @@ class AdvanceService
 
     public function requestDisbursement(Advance $advance, ?string $provider = null): Disbursement
     {
+        if ($advance->status !== AdvanceStatus::Approved) {
+            throw new RuntimeException('Only approved advances can be disbursed.');
+        }
+
+        if ($advance->disbursements()->where('status', DisbursementStatus::Successful)->exists()) {
+            throw new RuntimeException('This advance has already been disbursed.');
+        }
+
         return DB::transaction(function () use ($advance, $provider) {
             $advance->update(['status' => AdvanceStatus::Disbursing]);
 
