@@ -24,11 +24,12 @@ use App\Http\Controllers\Test;
 use App\Http\Controllers\Webhooks\MpesaB2cController;
 use App\Http\Controllers\Webhooks\MpesaC2bController;
 use App\Http\Controllers\Webhooks\MpesaStkController;
+use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/user', fn (Request $request) => $request->user())->name('user.show');
+    Route::get('/user', fn (Request $request) => new UserResource($request->user()))->name('user.show');
     Route::patch('/user', [ProfileController::class, 'update'])->name('user.update');
     Route::post('/user/email/verification-code', [ProfileController::class, 'sendEmailVerification'])
         ->middleware('throttle:6,1')

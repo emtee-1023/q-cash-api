@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Requests\VerifyEmailRequest;
+use App\Http\Resources\UserResource;
 use App\Services\Auth\EmailOtpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,7 +38,7 @@ class ProfileController extends Controller
 
         return response()->json([
             'message' => 'Email updated. A verification code has been sent to your new email address.',
-            'user' => $user,
+            'user' => new UserResource($user),
         ]);
     }
 

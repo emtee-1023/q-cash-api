@@ -38,6 +38,7 @@ class OfferController extends Controller
         $offer = $this->offers->createOffer($assessment, $request->validated());
 
         return (new OfferResource($offer))
+            ->additional(['message' => 'Offer created.'])
             ->response()
             ->setStatusCode(201);
     }
@@ -59,6 +60,7 @@ class OfferController extends Controller
         $advance = $this->advances->acceptOffer($offer, $partner);
 
         return (new AdvanceResource($advance))
+            ->additional(['message' => 'Offer accepted. Advance created.'])
             ->response()
             ->setStatusCode(201);
     }

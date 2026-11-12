@@ -13,7 +13,7 @@ use App\Models\FinancingPartner;
 use App\Models\User;
 use App\Services\Ledger\AdvanceLedger;
 use Illuminate\Support\Facades\DB;
-use RuntimeException;
+use Illuminate\Validation\ValidationException;
 
 class AdvanceService
 {
@@ -26,7 +26,9 @@ class AdvanceService
     public function acceptOffer(AdvanceOffer $offer, ?FinancingPartner $partner = null): Advance
     {
         if ($offer->status !== OfferStatus::Pending) {
-            throw new RuntimeException('Only pending offers can be accepted.');
+            throw ValidationException::withMessages([
+                'offer' => 'Only pending offers can be accepted.',
+            ]);
         }
 
         return DB::transaction(function () use ($offer, $partner) {
@@ -75,11 +77,15 @@ class AdvanceService
     public function requestDisbursement(Advance $advance, ?string $provider = null): Disbursement
     {
         if ($advance->status !== AdvanceStatus::Approved) {
-            throw new RuntimeException('Only approved advances can be disbursed.');
+            throw ValidationException::withMessages([
+                'advance' => 'Only approved advances can be disbursed.',
+            ]);
         }
 
         if ($advance->disbursements()->where('status', DisbursementStatus::Successful)->exists()) {
-            throw new RuntimeException('This advance has already been disbursed.');
+            throw ValidationException::withMessages([
+                'advance' => 'This advance has already been disbursed.',
+            ]);
         }
 
         return DB::transaction(function () use ($advance, $provider) {

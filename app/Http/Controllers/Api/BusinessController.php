@@ -61,6 +61,7 @@ class BusinessController extends Controller
         $business->load(['businessType', 'countyLocation', 'subCounty', 'ward', 'wallet']);
 
         return (new BusinessDetailResource($business))
+            ->additional(['message' => 'Business registered.'])
             ->response()
             ->setStatusCode(201);
     }

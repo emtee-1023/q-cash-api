@@ -7,6 +7,7 @@ use App\Models\EraAssessment;
 use App\Services\Advances\AdvanceService;
 use App\Services\Advances\OfferService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 
 uses(RefreshDatabase::class);
 
@@ -71,4 +72,4 @@ test('an offer can only be accepted once', function () {
     $service->acceptOffer($offer);
 
     $service->acceptOffer($offer);
-})->throws(RuntimeException::class);
+})->throws(ValidationException::class);

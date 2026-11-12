@@ -36,6 +36,7 @@ class StkPushController extends Controller
         );
 
         return (new StkPushRequestResource($stkPush))
+            ->additional(['message' => 'STK push initiated.'])
             ->response()
             ->setStatusCode(201);
     }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RegisterRequest;
+use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Markt\LaravelAuth\Services\AuthService;
@@ -45,7 +46,7 @@ class RegisterController extends Controller
 
         return response()->json([
             'message' => 'Registration successful. Please verify your phone number.',
-            'user' => $user,
+            'user' => new UserResource($user),
         ], 201);
     }
 }

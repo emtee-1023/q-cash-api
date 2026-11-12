@@ -24,6 +24,7 @@ class PaymentAccountController extends Controller
         $account = $business->paymentAccounts()->create($request->validated());
 
         return (new PaymentAccountResource($account))
+            ->additional(['message' => 'Payment account added.'])
             ->response()
             ->setStatusCode(201);
     }
