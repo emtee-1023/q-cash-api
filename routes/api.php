@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\RepaymentController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Test;
+use App\Http\Controllers\Webhooks\MpesaC2bController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -34,6 +35,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::get('/test', [Test::class, 'test']);
 Route::post('/testsms', [Test::class, 'sendSms']);
+
+Route::prefix('webhooks')->name('webhooks.')->group(function () {
+    Route::post('validation', [MpesaC2bController::class, 'validation'])->name('validation');
+    Route::post('confirmation', [MpesaC2bController::class, 'confirmation'])->name('confirmation');
+});
 
 Route::post('auth/register', [RegisterController::class, 'register']);
 

@@ -6,6 +6,7 @@ use App\Services\Assessments\PythonAssessmentClient;
 use App\Services\Auth\AuthService;
 use App\Services\Auth\OtpService;
 use App\Services\Sms\AfricaTalkingSmsSender;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Markt\LaravelAuth\Contracts\SmsSender;
 use Markt\LaravelAuth\Services\AuthService as BaseAuthService;
@@ -39,5 +40,10 @@ class AppServiceProvider extends ServiceProvider
             SmsSender::class,
             AfricaTalkingSmsSender::class
         );
+
+        // Allow docs when using cloudflared tunnel
+        if (str_contains(request()->getHost(), 'trycloudflare.com')) {
+            URL::forceScheme('https');
+        }
     }
 }

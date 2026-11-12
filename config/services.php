@@ -49,6 +49,15 @@ return [
 
     'mpesa' => [
         'paybill_number' => env('MPESA_PAYBILL_NUMBER'),
+        'consumer_key' => env('MPESA_CONSUMER_KEY'),
+        'consumer_secret' => env('MPESA_CONSUMER_SECRET'),
+        'passkey' => env('MPESA_PASSKEY'),
+        'environment' => env('MPESA_ENVIRONMENT', 'sandbox'),
+        'callback_url' => env('MPESA_CALLBACK_URL'),
+        'validation_url' => env('MPESA_VALIDATION_URL'),
+        'validation_enabled' => env('MPESA_VALIDATION_ENABLED', false),
+        'timezone' => env('MPESA_TIMEZONE', 'Africa/Nairobi'),
+        'shortcode' => env('MPESA_SHORTCODE'),
     ],
 
 ];
