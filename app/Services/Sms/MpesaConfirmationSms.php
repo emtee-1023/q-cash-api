@@ -57,6 +57,16 @@ class MpesaConfirmationSms
             ->copy()
             ->setTimezone((string) config('services.mpesa.timezone', 'Africa/Nairobi'));
 
+        if ($transaction->transaction_type === 'stk_push') {
+            return sprintf(
+                'Confirmed. STK push for %s has been paid successfully by phone number %s on %s at %s.',
+                $amount->formatted('KES'),
+                $this->phoneNumber($transaction),
+                $paidAt->format('d/m/y'),
+                $paidAt->format('g:i A'),
+            );
+        }
+
         $sender = $this->sender($transaction);
 
         return Str::of(sprintf(
@@ -69,6 +79,13 @@ class MpesaConfirmationSms
         ))->squish()->toString();
     }
 
+    private function phoneNumber(Transaction $transaction): string
+    {
+        $reference = trim((string) $transaction->counterparty_reference);
+
+        return preg_match('/^(?:\+?254|0)\d{9}$/', $reference) === 1 ? $reference : 'xxx';
+    }
+
     /**
      * M-Pesa no longer exposes payer phone numbers in C2B callbacks. Safaricom
      * sends either a hash or a masked value, so the number is never shown.
@@ -76,12 +93,15 @@ class MpesaConfirmationSms
     private function sender(Transaction $transaction): string
     {
         $name = trim((string) $transaction->counterparty_name);
-        $sender = $name === '' ? 'M-PESA user' : $name;
 
-        if (trim((string) $transaction->counterparty_reference) !== '') {
-            $sender .= ' xxx';
+        if ($name === '') {
+            return 'an M-PESA customer';
         }
 
-        return $sender;
+        if (trim((string) $transaction->counterparty_reference) !== '') {
+            return $name.' xxx';
+        }
+
+        return $name;
     }
 }

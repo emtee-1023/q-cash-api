@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Services\Assessments\PythonAssessmentClient;
 use App\Services\Auth\AuthService;
 use App\Services\Auth\OtpService;
+use App\Services\Daraja\DarajaClient;
 use App\Services\Sms\AfricaTalkingSmsSender;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -28,6 +29,14 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->bind(BaseAuthService::class, AuthService::class);
         $this->app->bind(BaseOtpService::class, OtpService::class);
+
+        $this->app->bind(DarajaClient::class, function (): DarajaClient {
+            return new DarajaClient(
+                config('services.mpesa.base_url'),
+                config('services.mpesa.consumer_key'),
+                config('services.mpesa.consumer_secret'),
+            );
+        });
     }
 
     /**

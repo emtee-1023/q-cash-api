@@ -160,6 +160,14 @@ class Business extends Model
     }
 
     /**
+     * @return HasMany<StkPushRequest, $this>
+     */
+    public function stkPushRequests(): HasMany
+    {
+        return $this->hasMany(StkPushRequest::class);
+    }
+
+    /**
      * @return HasMany<EraAssessment, $this>
      */
     public function assessments(): HasMany

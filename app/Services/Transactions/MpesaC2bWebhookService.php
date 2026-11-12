@@ -8,7 +8,7 @@ use App\Models\Business;
 use App\Models\ProviderWebhookEvent;
 use App\Services\Sms\MpesaConfirmationSms;
 use App\Support\Money;
-use Carbon\Carbon;
+use App\Support\MpesaTimestamp;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -177,7 +177,7 @@ class MpesaC2bWebhookService
             'direction' => TransactionDirection::Inflow->value,
             'amount_minor' => Money::fromMajor((string) Arr::get($payload, 'TransAmount', '0'), 'KES')->minor,
             'currency' => 'KES',
-            'transaction_time' => $this->transactionTime($payload),
+            'transaction_time' => MpesaTimestamp::parse((string) Arr::get($payload, 'TransTime', '')),
             'provider_status' => 'completed',
             'counterparty_reference' => Arr::get($payload, 'MSISDN'),
             'counterparty_name' => $this->counterpartyName($payload),
@@ -194,31 +194,6 @@ class MpesaC2bWebhookService
         $transactionType = Arr::get($payload, 'TransactionType');
 
         return filled($transactionType) ? Str::slug((string) $transactionType, '_') : null;
-    }
-
-    /**
-     * M-Pesa sends TransTime in East Africa Time, while the application stores
-     * timestamps in UTC.
-     *
-     * @param  array<string, mixed>  $payload
-     */
-    private function transactionTime(array $payload): Carbon
-    {
-        $transTime = (string) Arr::get($payload, 'TransTime', '');
-
-        if ($transTime === '') {
-            return now();
-        }
-
-        try {
-            return Carbon::createFromFormat(
-                'YmdHis',
-                $transTime,
-                (string) config('services.mpesa.timezone', 'Africa/Nairobi'),
-            )->utc();
-        } catch (Throwable) {
-            return now();
-        }
     }
 
     /**
