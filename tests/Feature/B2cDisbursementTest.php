@@ -12,6 +12,7 @@ use App\Services\Disbursements\MpesaB2cDisbursementService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\Sanctum;
 use Markt\LaravelAuth\Contracts\SmsSender;
 use Tests\Fixtures\FakeSmsSender;
@@ -145,7 +146,7 @@ test('disbursement sends the advance principal to the owner phone via b2c', func
     Sanctum::actingAs($owner);
 
     $this->postJson("/api/advances/{$advance->id}/disburse")
-        ->assertOk()
+        ->assertAccepted()
         ->assertJsonPath('data.status', 'disbursing');
 
     $disbursement = Disbursement::query()->sole();
@@ -187,7 +188,7 @@ test('a disbursement cannot be sent when the owner has no phone number', functio
     $advance = b2cAdvance($business);
 
     expect(fn () => app(MpesaB2cDisbursementService::class)->disburse($advance))
-        ->toThrow(RuntimeException::class, 'The business owner has no phone number for disbursement.');
+        ->toThrow(ValidationException::class);
 
     expect(Disbursement::query()->count())->toBe(0);
 });

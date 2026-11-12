@@ -38,7 +38,7 @@ test('sanctum authentication guards the user endpoint', function () {
     $user = User::factory()->create();
     Sanctum::actingAs($user);
 
-    $this->getJson('/api/user')->assertOk()->assertJsonPath('id', $user->id);
+    $this->getJson('/api/user')->assertOk()->assertJsonPath('data.id', $user->id);
 });
 
 test('a user can authenticate through the package login route', function () {

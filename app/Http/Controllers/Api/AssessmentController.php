@@ -32,6 +32,7 @@ class AssessmentController extends Controller
         );
 
         return (new AssessmentResource($assessment))
+            ->additional(['message' => 'Assessment requested.'])
             ->response()
             ->setStatusCode(201);
     }

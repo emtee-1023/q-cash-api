@@ -42,6 +42,7 @@ class RepaymentController extends Controller
         $collection->load('allocations');
 
         return (new RepaymentCollectionResource($collection))
+            ->additional(['message' => 'Repayment recorded.'])
             ->response()
             ->setStatusCode(201);
     }

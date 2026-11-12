@@ -7,6 +7,7 @@ use App\Models\Disbursement;
 use App\Services\Advances\AdvanceService;
 use App\Support\BusinessOwner;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Throwable;
 
@@ -24,7 +25,9 @@ class MpesaB2cDisbursementService
         $owner = BusinessOwner::for($advance->business);
 
         if ($owner === null || blank($owner->phone_number)) {
-            throw new RuntimeException('The business owner has no phone number for disbursement.');
+            throw ValidationException::withMessages([
+                'phone_number' => 'The business owner has no phone number for disbursement.',
+            ]);
         }
 
         $disbursement = $this->advances->requestDisbursement($advance, 'mpesa_b2c');

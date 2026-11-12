@@ -57,6 +57,7 @@ class WithdrawalController extends Controller
         }
 
         return (new BusinessWithdrawalResource($withdrawal))
+            ->additional(['message' => 'Withdrawal requested.'])
             ->response()
             ->setStatusCode(201);
     }

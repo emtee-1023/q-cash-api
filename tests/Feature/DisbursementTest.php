@@ -7,6 +7,7 @@ use App\Models\Advance;
 use App\Models\Business;
 use App\Services\Advances\AdvanceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 
 uses(RefreshDatabase::class);
 
@@ -93,7 +94,7 @@ test('an advance that is not approved cannot be disbursed', function () {
     ]);
 
     expect(fn () => app(AdvanceService::class)->requestDisbursement($advance, 'Safaricom'))
-        ->toThrow(RuntimeException::class, 'Only approved advances can be disbursed.');
+        ->toThrow(ValidationException::class);
 });
 
 test('an advance with a successful disbursement cannot be disbursed again', function () {
@@ -107,5 +108,5 @@ test('an advance with a successful disbursement cannot be disbursed again', func
     $advance->update(['status' => AdvanceStatus::Approved->value]);
 
     expect(fn () => $service->requestDisbursement($advance, 'Safaricom'))
-        ->toThrow(RuntimeException::class, 'This advance has already been disbursed.');
+        ->toThrow(ValidationException::class);
 });

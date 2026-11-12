@@ -56,7 +56,8 @@ class AdvanceController extends Controller
 
         $advance = $this->advances->approve($advance);
 
-        return new AdvanceResource($advance);
+        return (new AdvanceResource($advance))
+            ->additional(['message' => 'Advance approved.']);
     }
 
     /**
@@ -71,6 +72,9 @@ class AdvanceController extends Controller
 
         $this->b2cDisbursements->disburse($advance);
 
-        return new AdvanceResource($advance->refresh());
+        return (new AdvanceResource($advance->refresh()))
+            ->additional(['message' => 'Disbursement requested.'])
+            ->response()
+            ->setStatusCode(202);
     }
 }

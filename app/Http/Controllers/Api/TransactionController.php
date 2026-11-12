@@ -48,6 +48,7 @@ class TransactionController extends Controller
         ]);
 
         return (new TransactionResource($transaction))
+            ->additional(['message' => 'Transaction ingested.'])
             ->response()
             ->setStatusCode(201);
     }

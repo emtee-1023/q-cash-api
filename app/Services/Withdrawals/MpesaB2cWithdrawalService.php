@@ -10,6 +10,7 @@ use App\Services\Wallets\BusinessWalletService;
 use App\Support\BusinessOwner;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Throwable;
 
@@ -27,7 +28,9 @@ class MpesaB2cWithdrawalService
         $owner = BusinessOwner::for($business);
 
         if ($owner === null || blank($owner->phone_number)) {
-            throw new RuntimeException('The business owner has no phone number for withdrawal.');
+            throw ValidationException::withMessages([
+                'phone_number' => 'The business owner has no phone number for withdrawal.',
+            ]);
         }
 
         $withdrawal = DB::transaction(function () use ($business, $owner, $amountMinor) {
