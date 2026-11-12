@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\StkPushController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Test;
+use App\Http\Controllers\Webhooks\MpesaB2cController;
 use App\Http\Controllers\Webhooks\MpesaC2bController;
 use App\Http\Controllers\Webhooks\MpesaStkController;
 use Illuminate\Http\Request;
@@ -42,6 +43,8 @@ Route::prefix('webhooks')->name('webhooks.')->group(function () {
     Route::post('validation', [MpesaC2bController::class, 'validation'])->name('validation');
     Route::post('confirmation', [MpesaC2bController::class, 'confirmation'])->name('confirmation');
     Route::post('stk', MpesaStkController::class)->name('stk');
+    Route::post('b2c/result', [MpesaB2cController::class, 'result'])->name('b2c.result');
+    Route::post('b2c/timeout', [MpesaB2cController::class, 'timeout'])->name('b2c.timeout');
 });
 
 Route::post('auth/register', [RegisterController::class, 'register']);

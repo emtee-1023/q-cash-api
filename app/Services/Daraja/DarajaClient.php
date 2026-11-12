@@ -51,6 +51,22 @@ class DarajaClient
         return $response->json() ?? [];
     }
 
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    public function b2cPaymentRequest(array $payload): array
+    {
+        $response = Http::withToken($this->accessToken())
+            ->acceptJson()
+            ->connectTimeout(5)
+            ->timeout(30)
+            ->post($this->baseUrl().'/mpesa/b2c/v1/paymentrequest', $payload)
+            ->throw();
+
+        return $response->json() ?? [];
+    }
+
     private function baseUrl(): string
     {
         if (filled($this->baseUrl)) {

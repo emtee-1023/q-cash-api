@@ -84,3 +84,28 @@ test('a failed disbursement returns the advance to pending', function () {
     expect($disbursement->failure_reason)->toBe('Insufficient funds');
     expect($advance->refresh()->status)->toBe(AdvanceStatus::Pending);
 });
+
+test('an advance that is not approved cannot be disbursed', function () {
+    $business = Business::factory()->create();
+    $advance = Advance::factory()->create([
+        'business_id' => $business->id,
+        'status' => AdvanceStatus::Active->value,
+    ]);
+
+    expect(fn () => app(AdvanceService::class)->requestDisbursement($advance, 'Safaricom'))
+        ->toThrow(RuntimeException::class, 'Only approved advances can be disbursed.');
+});
+
+test('an advance with a successful disbursement cannot be disbursed again', function () {
+    $business = Business::factory()->create();
+    $advance = disburseableAdvance($business);
+    $service = app(AdvanceService::class);
+
+    $disbursement = $service->requestDisbursement($advance, 'Safaricom');
+    $service->markDisbursementSuccessful($disbursement, 'REF-1');
+
+    $advance->update(['status' => AdvanceStatus::Approved->value]);
+
+    expect(fn () => $service->requestDisbursement($advance, 'Safaricom'))
+        ->toThrow(RuntimeException::class, 'This advance has already been disbursed.');
+});

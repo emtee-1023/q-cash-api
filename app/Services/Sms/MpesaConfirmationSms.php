@@ -2,11 +2,9 @@
 
 namespace App\Services\Sms;
 
-use App\Enums\BusinessUserRole;
-use App\Enums\BusinessUserStatus;
 use App\Models\Business;
 use App\Models\Transaction;
-use App\Models\User;
+use App\Support\BusinessOwner;
 use App\Support\Money;
 use Illuminate\Support\Str;
 use Markt\LaravelAuth\Contracts\SmsSender;
@@ -24,7 +22,7 @@ class MpesaConfirmationSms
      */
     public function send(Business $business, Transaction $transaction): void
     {
-        $owner = $this->owner($business);
+        $owner = BusinessOwner::for($business);
 
         if ($owner === null || blank($owner->phone_number)) {
             return;
@@ -35,19 +33,6 @@ class MpesaConfirmationSms
         } catch (Throwable $exception) {
             report($exception);
         }
-    }
-
-    private function owner(Business $business): ?User
-    {
-        $owners = $business->businessUsers()
-            ->where('role', BusinessUserRole::Owner->value)
-            ->where('status', BusinessUserStatus::Active->value)
-            ->with('user')
-            ->get();
-
-        $owner = $owners->firstWhere('is_primary_contact', true) ?? $owners->first();
-
-        return $owner?->user;
     }
 
     private function message(Transaction $transaction): string
