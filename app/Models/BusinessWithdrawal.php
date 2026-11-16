@@ -25,6 +25,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'provider_response',
     'requested_at',
     'completed_at',
+    'reconciliation_requested_at',
+    'reconciliation_attempts',
+    'reconciliation_conversation_id',
 ])]
 class BusinessWithdrawal extends Model
 {
@@ -39,6 +42,8 @@ class BusinessWithdrawal extends Model
             'provider_response' => 'array',
             'requested_at' => 'datetime',
             'completed_at' => 'datetime',
+            'reconciliation_requested_at' => 'datetime',
+            'reconciliation_attempts' => 'integer',
         ];
     }
 

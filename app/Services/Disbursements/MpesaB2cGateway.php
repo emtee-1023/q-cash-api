@@ -5,6 +5,7 @@ namespace App\Services\Disbursements;
 use App\Services\Daraja\DarajaClient;
 use App\Support\Money;
 use App\Support\MpesaSecurityCredential;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 class MpesaB2cGateway
@@ -28,12 +29,22 @@ class MpesaB2cGateway
     ): array {
         $configuration = $this->configuration();
 
-        return $this->daraja->b2cPaymentRequest([
+        Log::info('M-Pesa B2C payment request sending.', [
+            'originator_conversation_id' => $originatorConversationId,
+            'recipient_phone_number' => $recipientPhoneNumber,
+            'amount_minor' => $amountMinor,
+            'command_id' => $configuration['command_id'],
+            'shortcode' => $configuration['shortcode'],
+            'result_url' => $configuration['result_url'],
+            'timeout_url' => $configuration['timeout_url'],
+        ]);
+
+        $response = $this->daraja->b2cPaymentRequest([
             'OriginatorConversationID' => $originatorConversationId,
             'InitiatorName' => $configuration['initiator_name'],
             'SecurityCredential' => $configuration['security_credential'],
             'CommandID' => $configuration['command_id'],
-            'Amount' => Money::of($amountMinor, 'KES')->toMajor(),
+            'Amount' => (int) Money::of($amountMinor, 'KES')->toMajor(),
             'PartyA' => $configuration['shortcode'],
             'PartyB' => $recipientPhoneNumber,
             'Remarks' => $remarks,
@@ -41,6 +52,59 @@ class MpesaB2cGateway
             'ResultURL' => $configuration['result_url'],
             'Occasion' => $occasion,
         ]);
+
+        Log::info('M-Pesa B2C payment request accepted.', [
+            'originator_conversation_id' => $originatorConversationId,
+            'response_originator_conversation_id' => $response['OriginatorConversationID'] ?? null,
+            'conversation_id' => $response['ConversationID'] ?? null,
+            'response_code' => $response['ResponseCode'] ?? null,
+            'response_description' => $response['ResponseDescription'] ?? null,
+        ]);
+
+        return $response;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function queryTransactionStatus(string $transactionId): array
+    {
+        $configuration = $this->configuration();
+        $resultUrl = (string) config('services.mpesa.b2c.status_result_url');
+        $timeoutUrl = (string) config('services.mpesa.b2c.status_timeout_url');
+
+        if (blank($resultUrl) || blank($timeoutUrl)) {
+            throw new RuntimeException('M-Pesa B2C transaction status is not configured.');
+        }
+
+        Log::info('M-Pesa B2C transaction status query sending.', [
+            'transaction_id' => $transactionId,
+            'result_url' => $resultUrl,
+            'timeout_url' => $timeoutUrl,
+        ]);
+
+        $response = $this->daraja->transactionStatus([
+            'Initiator' => $configuration['initiator_name'],
+            'SecurityCredential' => $configuration['security_credential'],
+            'CommandID' => 'TransactionStatusQuery',
+            'TransactionID' => $transactionId,
+            'PartyA' => $configuration['shortcode'],
+            'IdentifierType' => '4',
+            'ResultURL' => $resultUrl,
+            'QueueTimeOutURL' => $timeoutUrl,
+            'Remarks' => 'QCash reconciliation',
+            'Occasion' => 'QCash reconciliation',
+        ]);
+
+        Log::info('M-Pesa B2C transaction status query accepted.', [
+            'transaction_id' => $transactionId,
+            'conversation_id' => $response['ConversationID'] ?? null,
+            'originator_conversation_id' => $response['OriginatorConversationID'] ?? null,
+            'response_code' => $response['ResponseCode'] ?? null,
+            'response_description' => $response['ResponseDescription'] ?? null,
+        ]);
+
+        return $response;
     }
 
     /**

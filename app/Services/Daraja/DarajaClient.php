@@ -61,7 +61,23 @@ class DarajaClient
             ->acceptJson()
             ->connectTimeout(5)
             ->timeout(30)
-            ->post($this->baseUrl().'/mpesa/b2c/v1/paymentrequest', $payload)
+            ->post($this->baseUrl().'/mpesa/b2c/v3/paymentrequest', $payload)
+            ->throw();
+
+        return $response->json() ?? [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    public function transactionStatus(array $payload): array
+    {
+        $response = Http::withToken($this->accessToken())
+            ->acceptJson()
+            ->connectTimeout(5)
+            ->timeout(30)
+            ->post($this->baseUrl().'/mpesa/transactionstatus/v1/query', $payload)
             ->throw();
 
         return $response->json() ?? [];

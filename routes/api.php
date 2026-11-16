@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\WithdrawalController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Test;
 use App\Http\Controllers\Webhooks\MpesaB2cController;
+use App\Http\Controllers\Webhooks\MpesaB2cStatusController;
 use App\Http\Controllers\Webhooks\MpesaC2bController;
 use App\Http\Controllers\Webhooks\MpesaStkController;
 use App\Http\Resources\UserResource;
@@ -48,6 +49,8 @@ Route::prefix('webhooks')->name('webhooks.')->group(function () {
     Route::post('stk', MpesaStkController::class)->name('stk');
     Route::post('b2c/result', [MpesaB2cController::class, 'result'])->name('b2c.result');
     Route::post('b2c/timeout', [MpesaB2cController::class, 'timeout'])->name('b2c.timeout');
+    Route::post('b2c/status/result', [MpesaB2cStatusController::class, 'result'])->name('b2c.status.result');
+    Route::post('b2c/status/timeout', [MpesaB2cStatusController::class, 'timeout'])->name('b2c.status.timeout');
 });
 
 Route::post('auth/register', [RegisterController::class, 'register']);

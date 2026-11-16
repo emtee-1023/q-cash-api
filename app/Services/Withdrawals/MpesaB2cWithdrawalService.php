@@ -9,6 +9,7 @@ use App\Services\Disbursements\MpesaB2cGateway;
 use App\Services\Wallets\BusinessWalletService;
 use App\Support\BusinessOwner;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
@@ -23,6 +24,11 @@ class MpesaB2cWithdrawalService
 
     public function withdraw(Business $business, int $amountMinor): BusinessWithdrawal
     {
+        Log::info('M-Pesa B2C withdrawal requested.', [
+            'business_id' => $business->id,
+            'amount_minor' => $amountMinor,
+        ]);
+
         $this->gateway->ensureConfigured();
 
         $owner = BusinessOwner::for($business);
@@ -32,6 +38,12 @@ class MpesaB2cWithdrawalService
                 'phone_number' => 'The business owner has no phone number for withdrawal.',
             ]);
         }
+
+        Log::info('M-Pesa B2C withdrawal owner resolved.', [
+            'business_id' => $business->id,
+            'owner_user_id' => $owner->id,
+            'recipient_phone_number' => $owner->phone_number,
+        ]);
 
         $withdrawal = DB::transaction(function () use ($business, $owner, $amountMinor) {
             $withdrawal = $business->withdrawals()->create([
@@ -69,6 +81,11 @@ class MpesaB2cWithdrawalService
                 'QCash withdrawal',
             );
         } catch (Throwable $exception) {
+            Log::error('M-Pesa B2C withdrawal request failed.', [
+                'withdrawal_id' => $withdrawal->id,
+                'exception' => $exception,
+            ]);
+
             $this->wallets->refund($business, $withdrawal->amount_minor, $withdrawal);
 
             $withdrawal->update([
@@ -82,6 +99,11 @@ class MpesaB2cWithdrawalService
 
         if ((string) ($response['ResponseCode'] ?? '') !== '0') {
             $message = (string) ($response['ResponseDescription'] ?? 'The B2C request was not accepted.');
+
+            Log::warning('M-Pesa B2C withdrawal request rejected.', [
+                'withdrawal_id' => $withdrawal->id,
+                'response' => $response,
+            ]);
 
             $this->wallets->refund($business, $withdrawal->amount_minor, $withdrawal);
 

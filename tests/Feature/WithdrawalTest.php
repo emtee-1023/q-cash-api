@@ -53,7 +53,7 @@ function fakeAcceptedWithdrawalB2c(string $conversationId = 'AG_WITHDRAWAL_1'): 
         'https://sandbox.safaricom.co.ke/oauth/v1/generate*' => Http::response([
             'access_token' => 'test-token',
         ]),
-        'https://sandbox.safaricom.co.ke/mpesa/b2c/v1/paymentrequest' => Http::response([
+        'https://sandbox.safaricom.co.ke/mpesa/b2c/v3/paymentrequest' => Http::response([
             'ConversationID' => $conversationId,
             'OriginatorConversationID' => 'ignored',
             'ResponseCode' => '0',
@@ -112,12 +112,12 @@ test('an owner can withdraw to the owner phone via b2c', function () {
         ->and($wallet->entries()->where('entry_type', BusinessWalletEntryType::Debit->value)->sole()->amount_minor)->toBe(-3000);
 
     Http::assertSent(function (Request $request) use ($owner, $withdrawal): bool {
-        if (! str_ends_with($request->url(), '/mpesa/b2c/v1/paymentrequest')) {
+        if (! str_ends_with($request->url(), '/mpesa/b2c/v3/paymentrequest')) {
             return false;
         }
 
         return $request['PartyB'] === $owner->phone_number
-            && $request['Amount'] === '30.00'
+            && $request['Amount'] === 30
             && $request['PartyA'] === '600000'
             && $request['Remarks'] === 'QCash withdrawal'
             && $request['Occasion'] === 'QCash withdrawal'
@@ -173,7 +173,7 @@ test('a rejected b2c withdrawal refunds the wallet', function () {
         'https://sandbox.safaricom.co.ke/oauth/v1/generate*' => Http::response([
             'access_token' => 'test-token',
         ]),
-        'https://sandbox.safaricom.co.ke/mpesa/b2c/v1/paymentrequest' => Http::response([
+        'https://sandbox.safaricom.co.ke/mpesa/b2c/v3/paymentrequest' => Http::response([
             'ConversationID' => 'AG_WITHDRAWAL_REJECTED',
             'ResponseCode' => '1',
             'ResponseDescription' => 'The initiator information is invalid.',

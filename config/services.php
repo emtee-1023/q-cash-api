@@ -77,6 +77,12 @@ return [
             'command_id' => env('MPESA_B2C_COMMAND_ID', 'BusinessPayment'),
             'result_url' => env('MPESA_B2C_RESULT_URL', $webhookBaseUrl.'/api/webhooks/b2c/result'),
             'timeout_url' => env('MPESA_B2C_TIMEOUT_URL', $webhookBaseUrl.'/api/webhooks/b2c/timeout'),
+            'status_result_url' => env('MPESA_B2C_STATUS_RESULT_URL', $webhookBaseUrl.'/api/webhooks/b2c/status/result'),
+            'status_timeout_url' => env('MPESA_B2C_STATUS_TIMEOUT_URL', $webhookBaseUrl.'/api/webhooks/b2c/status/timeout'),
+            'reconcile_after_minutes' => (int) env('MPESA_B2C_RECONCILE_AFTER_MINUTES', 5),
+            'reconcile_interval_minutes' => (int) env('MPESA_B2C_RECONCILE_INTERVAL_MINUTES', 10),
+            'reconcile_max_attempts' => (int) env('MPESA_B2C_RECONCILE_MAX_ATTEMPTS', 6),
+            'reconcile_request_delay_ms' => (int) env('MPESA_B2C_RECONCILE_REQUEST_DELAY_MS', 2000),
         ],
     ],
 

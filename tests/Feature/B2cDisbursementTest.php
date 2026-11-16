@@ -135,7 +135,7 @@ test('disbursement sends the advance principal to the owner phone via b2c', func
         'https://sandbox.safaricom.co.ke/oauth/v1/generate*' => Http::response([
             'access_token' => 'test-token',
         ]),
-        'https://sandbox.safaricom.co.ke/mpesa/b2c/v1/paymentrequest' => Http::response([
+        'https://sandbox.safaricom.co.ke/mpesa/b2c/v3/paymentrequest' => Http::response([
             'ConversationID' => 'AG_20260115_00001',
             'OriginatorConversationID' => 'ignored',
             'ResponseCode' => '0',
@@ -161,7 +161,7 @@ test('disbursement sends the advance principal to the owner phone via b2c', func
     expect($advance->refresh()->status)->toBe(AdvanceStatus::Disbursing);
 
     Http::assertSent(function (Request $request) use ($owner, $disbursement): bool {
-        if (! str_ends_with($request->url(), '/mpesa/b2c/v1/paymentrequest')) {
+        if (! str_ends_with($request->url(), '/mpesa/b2c/v3/paymentrequest')) {
             return false;
         }
 
@@ -169,7 +169,7 @@ test('disbursement sends the advance principal to the owner phone via b2c', func
             && $request['InitiatorName'] === 'testapi'
             && $request['SecurityCredential'] === b2cSecurityCredential()
             && $request['CommandID'] === 'BusinessPayment'
-            && $request['Amount'] === '30000.00'
+            && $request['Amount'] === 30000
             && $request['PartyA'] === '600000'
             && $request['PartyB'] === $owner->phone_number
             && $request['Remarks'] === 'QCash advance'
@@ -212,7 +212,7 @@ test('a plaintext initiator password is encrypted at runtime', function () {
         'https://sandbox.safaricom.co.ke/oauth/v1/generate*' => Http::response([
             'access_token' => 'test-token',
         ]),
-        'https://sandbox.safaricom.co.ke/mpesa/b2c/v1/paymentrequest' => Http::response([
+        'https://sandbox.safaricom.co.ke/mpesa/b2c/v3/paymentrequest' => Http::response([
             'ConversationID' => 'AG_20260115_00003',
             'ResponseCode' => '0',
             'ResponseDescription' => 'Accept the service request successfully.',
@@ -222,7 +222,7 @@ test('a plaintext initiator password is encrypted at runtime', function () {
     app(MpesaB2cDisbursementService::class)->disburse($advance);
 
     Http::assertSent(function (Request $request) use ($privateKeyPem): bool {
-        if (! str_ends_with($request->url(), '/mpesa/b2c/v1/paymentrequest')) {
+        if (! str_ends_with($request->url(), '/mpesa/b2c/v3/paymentrequest')) {
             return false;
         }
 
@@ -268,7 +268,7 @@ test('a rejected b2c request fails the disbursement and returns the advance to p
         'https://sandbox.safaricom.co.ke/oauth/v1/generate*' => Http::response([
             'access_token' => 'test-token',
         ]),
-        'https://sandbox.safaricom.co.ke/mpesa/b2c/v1/paymentrequest' => Http::response([
+        'https://sandbox.safaricom.co.ke/mpesa/b2c/v3/paymentrequest' => Http::response([
             'ConversationID' => 'AG_20260115_00002',
             'ResponseCode' => '1',
             'ResponseDescription' => 'The initiator information is invalid.',
