@@ -12,8 +12,6 @@ services:
         depends_on:
             db:
                 condition: service_healthy
-        ports:
-            - "${APP_PORT:-3005}:80"
         env_file:
             - .env
         environment:
@@ -43,6 +41,9 @@ services:
             timeout: 5s
             retries: 3
             start_period: 30s
+        networks:
+            - default
+            - web-proxy
 
     db:
         image: postgres:16-alpine
@@ -64,7 +65,12 @@ services:
             timeout: 5s
             retries: 5
             start_period: 10s
-
+        networks:
+            - default
 volumes:
     qcash-storage:
     qcash-db:
+
+networks:
+    web-proxy:
+        external: true
