@@ -30,6 +30,7 @@ services:
             QCASH_ML_API_URL: ${QCASH_ML_API_URL:-}
         volumes:
             - qcash-storage:/var/www/html/storage
+            - ./.env:/var/www/html/.env
         extra_hosts:
             - "host.docker.internal:host-gateway"
         healthcheck:
