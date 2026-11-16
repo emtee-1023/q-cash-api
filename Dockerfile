@@ -33,8 +33,7 @@ FROM php-base AS runtime
 ENV APP_ENV=production \
     APP_DEBUG=false \
     LOG_CHANNEL=stderr \
-    DB_CONNECTION=sqlite \
-    DB_DATABASE=/data/database.sqlite
+    DB_CONNECTION=pgsql
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
