@@ -26,16 +26,28 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropUnique(['phone_number']);
-            $table->dropColumn([
-                'phone_number',
-                'phone_verified_at',
-            ]);
+        if (! Schema::hasTable('users')) {
+            return;
+        }
 
-            $table->string('email')
-                ->nullable(false)
-                ->change();
-        });
+        if (Schema::hasIndex('users', ['phone_number'], 'unique')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->dropUnique(['phone_number']);
+            });
+        }
+
+        $phoneColumns = array_values(array_filter(
+            ['phone_number', 'phone_verified_at'],
+            fn (string $column): bool => Schema::hasColumn('users', $column),
+        ));
+
+        if ($phoneColumns !== []) {
+            Schema::table('users', function (Blueprint $table) use ($phoneColumns) {
+                $table->dropColumn($phoneColumns);
+            });
+        }
+
+        // Email stays nullable: the application supports phone-only accounts,
+        // so restoring NOT NULL would fail whenever such a user exists.
     }
 };
