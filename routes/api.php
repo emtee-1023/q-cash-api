@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\BusinessInvitationController;
 use App\Http\Controllers\Api\BusinessMemberController;
 use App\Http\Controllers\Api\BusinessTypeController;
 use App\Http\Controllers\Api\LocationController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OfferController;
 use App\Http\Controllers\Api\PaymentAccountController;
 use App\Http\Controllers\Api\ProfileController;
@@ -39,6 +40,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/user/email/verify', [ProfileController::class, 'verifyEmail'])
         ->middleware('throttle:6,1')
         ->name('user.email.verify');
+
+    Route::prefix('notifications')->name('notifications.')->group(function () {
+        Route::get('/', [NotificationController::class, 'index'])->name('index');
+        Route::get('/unread-count', [NotificationController::class, 'unreadCount'])->name('unread-count');
+        Route::post('/read-all', [NotificationController::class, 'markAllAsRead'])->name('read-all');
+        Route::post('/{notification}/read', [NotificationController::class, 'markAsRead'])->name('read');
+    });
 });
 
 Route::get('/test', [Test::class, 'test']);

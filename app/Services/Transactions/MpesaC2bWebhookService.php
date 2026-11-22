@@ -6,6 +6,7 @@ use App\Enums\TransactionDirection;
 use App\Enums\WebhookProcessingStatus;
 use App\Models\Business;
 use App\Models\ProviderWebhookEvent;
+use App\Services\Notifications\BusinessNotifier;
 use App\Services\Sms\MpesaConfirmationSms;
 use App\Support\Money;
 use App\Support\MpesaTimestamp;
@@ -23,6 +24,7 @@ class MpesaC2bWebhookService
     public function __construct(
         private readonly TransactionIngestionService $ingestion,
         private readonly MpesaConfirmationSms $confirmationSms,
+        private readonly BusinessNotifier $notifier,
     ) {}
 
     /**
@@ -102,6 +104,7 @@ class MpesaC2bWebhookService
 
         if ($business !== null && $transaction !== null && $transaction->wasRecentlyCreated) {
             $this->confirmationSms->send($business, $transaction);
+            $this->notifier->paymentReceived($business, $transaction);
         }
 
         return $event->refresh();

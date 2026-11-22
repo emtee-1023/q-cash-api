@@ -307,6 +307,8 @@ test('a successful b2c result activates the advance and notifies the owner', fun
         ->and($advance->ledgerEntries()->where('entry_type', LedgerEntryType::PrincipalDisbursed->value)->count())->toBe(1)
         ->and($sms->lastMessageFor($owner->phone_number))
         ->toBe('QCash: A cash advance of KES 30,000.00 has been credited to your acct. Ref: NLJ41HAY6Q. Thank you for using QCash.');
+
+    expect($owner->notifications()->sole()->type)->toBe('advance_disbursed');
 });
 
 test('a failed b2c result fails the disbursement without sending an sms', function () {
