@@ -2,7 +2,9 @@
 
 namespace App\Services\Auth;
 
+use App\Models\User;
 use App\Support\PhoneNumber;
+use Laravel\Sanctum\NewAccessToken;
 use Markt\LaravelAuth\Services\AuthService as BaseAuthService;
 
 class AuthService extends BaseAuthService
@@ -15,6 +17,34 @@ class AuthService extends BaseAuthService
     public function verifyPhone(string $phoneNumber, string $otp): bool
     {
         return parent::verifyPhone(PhoneNumber::normalize($phoneNumber), $otp);
+    }
+
+    /**
+     * Verify a registration OTP and immediately issue a Sanctum token so the
+     * user is logged in without having to submit their credentials again.
+     *
+     * @return array{user: User, token: NewAccessToken}|null
+     */
+    public function verifyPhoneAndIssueToken(string $phoneNumber, string $otp): ?array
+    {
+        $phoneNumber = PhoneNumber::normalize($phoneNumber);
+
+        if (! parent::verifyPhone($phoneNumber, $otp)) {
+            return null;
+        }
+
+        $userModel = config('laravel-auth.models.user');
+
+        $user = $userModel::where('phone_number', $phoneNumber)->first();
+
+        if ($user === null) {
+            return null;
+        }
+
+        return [
+            'user' => $user,
+            'token' => $user->createToken('auth-token'),
+        ];
     }
 
     public function login(string $phoneNumber, string $password): array

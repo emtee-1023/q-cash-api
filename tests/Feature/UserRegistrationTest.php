@@ -148,7 +148,7 @@ test('an email can only be used once', function () {
         ->assertJsonValidationErrors('email');
 });
 
-test('a registered user must verify their phone before logging in', function () {
+test('a user is logged in immediately after verifying their phone', function () {
     $this->postJson('/api/auth/register', userRegistrationPayload())->assertCreated();
 
     $this->postJson('/api/auth/login', [
@@ -159,13 +159,30 @@ test('a registered user must verify their phone before logging in', function () 
     $message = app(SmsSender::class)->lastMessageFor('254712345678');
     preg_match('/code is (\d+)/', (string) $message, $matches);
 
-    $this->postJson('/api/auth/verify-phone', [
+    $response = $this->postJson('/api/auth/verify-phone', [
         'phone_number' => '0712345678',
         'otp' => $matches[1] ?? '',
-    ])->assertOk();
+    ]);
 
-    $this->postJson('/api/auth/login', [
+    $response->assertOk()
+        ->assertJsonStructure(['message', 'user', 'token', 'token_type'])
+        ->assertJsonPath('token_type', 'Bearer')
+        ->assertJsonPath('user.phone_number', '254712345678');
+
+    $this->withHeader('Authorization', 'Bearer '.$response->json('token'))
+        ->getJson('/api/user')
+        ->assertOk()
+        ->assertJsonPath('data.phone_number', '254712345678');
+});
+
+test('an invalid verification code does not log the user in', function () {
+    $this->postJson('/api/auth/register', userRegistrationPayload())->assertCreated();
+
+    $this->postJson('/api/auth/verify-phone', [
         'phone_number' => '0712345678',
-        'password' => 'password123',
-    ])->assertOk()->assertJsonStructure(['token']);
+        'otp' => '000000',
+    ])->assertStatus(422)
+        ->assertJsonMissingPath('token');
+
+    expect(User::query()->first()->tokens()->count())->toBe(0);
 });

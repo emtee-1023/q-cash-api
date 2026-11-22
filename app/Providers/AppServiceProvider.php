@@ -23,7 +23,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(PythonAssessmentClient::class, function ($app) {
             return new PythonAssessmentClient(
                 config('services.ml_api.url'),
-                config('services.ml_api.key'),
             );
         });
 

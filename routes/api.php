@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\WalletController;
 use App\Http\Controllers\Api\WithdrawalController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Auth\VerifyPhoneController;
 use App\Http\Controllers\Test;
 use App\Http\Controllers\Webhooks\MpesaB2cController;
 use App\Http\Controllers\Webhooks\MpesaB2cStatusController;
@@ -54,6 +55,9 @@ Route::prefix('webhooks')->name('webhooks.')->group(function () {
 });
 
 Route::post('auth/register', [RegisterController::class, 'register']);
+Route::post('auth/verify-phone', VerifyPhoneController::class)
+    ->middleware('throttle:laravel-auth-otp')
+    ->name('auth.verify-phone');
 
 Route::post('business-invitations/activate', [BusinessInvitationController::class, 'activate'])
     ->middleware('throttle:6,1')
