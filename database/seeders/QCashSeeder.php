@@ -48,7 +48,7 @@ use RuntimeException;
  *   07  G_intermittent       -> INELIGIBLE (many zero-revenue days)
  *   08  H_non_revenue        -> ELIGIBLE, but eligible revenue << total inflows
  *   09  I_anomaly            -> MANUAL_REVIEW / flagged anomalies (missing ids + large sales)
- *   10  unknown_types        -> MANUAL_REVIEW (> 50% unclassified)
+ *   10  unknown_types        -> MANUAL_REVIEW (high unclassified rate)
  *   11  cold_start           -> ELIGIBLE (conservative, rate 0.10, KSh 5,000) + PENDING offer
  *   12  fresh                -> INSUFFICIENT_DATA (< 90 days, no profile)
  *   13  exposure             -> INELIGIBLE (exposure reached: active advance >= max_exposure)
@@ -61,6 +61,33 @@ class QCashSeeder extends Seeder
 {
     private const SEED = 20261105;
 
+    /**
+     * Target eligible monthly revenue per scenario, in minor units. Keeping
+     * every scenario inside KES 7,600 - 14,000 means no 30-day window exceeds
+     * the KES 15,000 cap.
+     *
+     * @var array<int, int>
+     */
+    private const SCENARIO_MONTHLY_REVENUE_MINOR = [
+        1 => 1240000,
+        2 => 1120000,
+        3 => 1300000,
+        4 => 1400000,
+        5 => 1180000,
+        6 => 1060000,
+        7 => 900000,
+        8 => 950000,
+        9 => 760000,
+        10 => 1100000,
+        11 => 820000,
+        12 => 780000,
+        13 => 1150000,
+        14 => 760000,
+        15 => 1400000,
+        16 => 800000,
+        17 => 900000,
+    ];
+
     private const SALE_TYPES = [
         'till_payment_received',
         'paybill_payment',
@@ -69,7 +96,7 @@ class QCashSeeder extends Seeder
         'invoice_payment',
     ];
 
-    private const LARGE_SALE_MINOR = 5000000; // KSh 50,000
+    private const LARGE_SALE_MINOR = 500000; // KSh 5,000
 
     private Carbon $now;
 
@@ -327,11 +354,12 @@ class QCashSeeder extends Seeder
         $slug = $scenario['slug'];
         $historyDays = $scenario['history_days'];
         $start = $this->now->copy()->subDays($historyDays);
+        $dailyTargets = $this->dailyRevenueTargets($scenario);
 
         for ($d = 0; $d < $historyDays; $d++) {
             $date = $start->copy()->addDays($d);
 
-            foreach ($this->salesForDay($scenario, $d, $historyDays) as $txIndex => [$amountMinor, $type]) {
+            foreach ($this->salesForDay($scenario, $dailyTargets[$d] ?? 0) as $txIndex => [$amountMinor, $type]) {
                 $rows[] = $this->transactionRow(
                     $business,
                     $scenario,
@@ -351,6 +379,87 @@ class QCashSeeder extends Seeder
         $this->applyUnknownTypes($rows, $scenario);
 
         return $rows;
+    }
+
+    /**
+     * Split each 30-day block's target revenue across its days. The block
+     * total is fixed, so a business can never drift above the monthly cap.
+     *
+     * @return array<int, int>
+     */
+    private function dailyRevenueTargets(array $scenario): array
+    {
+        $historyDays = $scenario['history_days'];
+        $monthlyTarget = self::SCENARIO_MONTHLY_REVENUE_MINOR[$scenario['seq']];
+        $pattern = $scenario['pattern'];
+        $blockCount = (int) ceil($historyDays / 30);
+
+        $targets = [];
+
+        for ($block = 0; $block < $blockCount; $block++) {
+            $firstDay = $block * 30;
+            $daysInBlock = min(30, $historyDays - $firstDay);
+            $blockTarget = (int) round(
+                $this->blockRevenueTarget($monthlyTarget, $pattern, $block, $blockCount)
+                * ($daysInBlock / 30),
+            );
+
+            $weights = [];
+            for ($i = 0; $i < $daysInBlock; $i++) {
+                $weights[] = $this->dayRevenueWeight($pattern, $firstDay + $i, $historyDays);
+            }
+
+            $totalWeight = array_sum($weights);
+            $activeDays = array_keys(array_filter($weights, fn (float $weight): bool => $weight > 0));
+            $lastActiveDay = $activeDays === [] ? null : $activeDays[array_key_last($activeDays)];
+            $remaining = $blockTarget;
+
+            for ($i = 0; $i < $daysInBlock; $i++) {
+                if ($weights[$i] <= 0) {
+                    $targets[$firstDay + $i] = 0;
+
+                    continue;
+                }
+
+                $dayTarget = $i === $lastActiveDay
+                    ? $remaining
+                    : (int) round($blockTarget * $weights[$i] / $totalWeight);
+
+                $dayTarget = max(0, $dayTarget);
+                $targets[$firstDay + $i] = $dayTarget;
+                $remaining -= $dayTarget;
+            }
+        }
+
+        return $targets;
+    }
+
+    private function blockRevenueTarget(int $monthlyTarget, string $pattern, int $block, int $blockCount): int
+    {
+        if ($blockCount <= 1) {
+            return $monthlyTarget;
+        }
+
+        $progress = $block / ($blockCount - 1);
+
+        return match ($pattern) {
+            'growing' => (int) round(max(760000, $monthlyTarget * (0.75 + 0.25 * $progress))),
+            'declining' => (int) round(max(760000, $monthlyTarget * (1.0 - 0.3 * $progress))),
+            default => $monthlyTarget,
+        };
+    }
+
+    private function dayRevenueWeight(string $pattern, int $dayIndex, int $historyDays): float
+    {
+        $date = $this->now->copy()->subDays($historyDays - $dayIndex);
+
+        return match ($pattern) {
+            'weekly' => in_array($date->dayOfWeek, [5, 6, 0], true) ? 1.5 : 0.8,
+            'monthly' => $date->day <= 7 ? 1.6 : 0.85,
+            'volatile' => fake()->randomFloat(2, 0.3, 2.2),
+            'intermittent' => $dayIndex % 3 === 0 ? fake()->randomFloat(2, 0.8, 1.2) : 0.0,
+            default => 1.0,
+        };
     }
 
     /**
@@ -381,38 +490,30 @@ class QCashSeeder extends Seeder
     /**
      * @return array<int, array{0: int, 1: string}>
      */
-    private function salesForDay(array $scenario, int $dayIndex, int $totalDays): array
+    private function salesForDay(array $scenario, int $dayTargetMinor): array
     {
-        $pattern = $scenario['pattern'];
-
-        if ($pattern === 'intermittent' && ($dayIndex % 3) !== 0) {
+        if ($dayTargetMinor <= 0) {
             return [];
         }
 
-        $min = $scenario['amount_minor_min'];
-        $max = $scenario['amount_minor_max'];
-        $txMin = $scenario['tx_min'];
-        $txMax = $scenario['tx_max'];
+        $count = max(1, fake()->numberBetween($scenario['tx_min'], $scenario['tx_max']));
 
-        $multiplier = 1.0;
-        if ($pattern === 'growing') {
-            $multiplier = 0.5 + 0.5 * ($dayIndex / max(1, $totalDays));
-        } elseif ($pattern === 'declining') {
-            $multiplier = 1.3 - 1.0 * ($dayIndex / max(1, $totalDays));
-        } elseif ($pattern === 'weekly') {
-            $multiplier = in_array($this->now->copy()->subDays($totalDays - $dayIndex)->dayOfWeek, [5, 6, 0], true) ? 1.5 : 0.8;
-        } elseif ($pattern === 'monthly') {
-            $multiplier = $this->now->copy()->subDays($totalDays - $dayIndex)->day <= 7 ? 1.6 : 0.85;
-        } elseif ($pattern === 'volatile') {
-            $multiplier = fake()->randomFloat(2, 0.3, 2.2);
+        $weights = [];
+        for ($i = 0; $i < $count; $i++) {
+            $weights[] = fake()->randomFloat(2, 0.6, 1.4);
         }
 
-        $count = fake()->numberBetween($txMin, $txMax);
-
+        $totalWeight = array_sum($weights);
+        $remaining = $dayTargetMinor;
         $sales = [];
+
         for ($i = 0; $i < $count; $i++) {
-            $amountMinor = (int) round(fake()->numberBetween($min, $max) * $multiplier);
+            $amountMinor = $i === $count - 1
+                ? $remaining
+                : (int) round($dayTargetMinor * $weights[$i] / $totalWeight);
+
             $amountMinor = max(100, $amountMinor);
+            $remaining -= $amountMinor;
             $sales[] = [$amountMinor, fake()->randomElement(self::SALE_TYPES)];
         }
 
@@ -428,15 +529,25 @@ class QCashSeeder extends Seeder
         $slug = $scenario['slug'];
         $historyDays = $scenario['history_days'];
         $start = $this->now->copy()->subDays($historyDays);
+        $monthlyTarget = self::SCENARIO_MONTHLY_REVENUE_MINOR[$scenario['seq']];
 
         $offset = 5000;
         $idx = $offset;
 
         foreach (['refunds' => ['customer_refund', 'outflow'], 'capital_injections' => ['owner_capital_injection', 'inflow'], 'internal_transfers' => ['internal_transfer', 'inflow'], 'reversals' => ['reversal', 'outflow']] as $key => [$type, $direction]) {
+            [$minPercent, $maxPercent] = match ($key) {
+                'refunds' => [0.01, 0.03],
+                'reversals' => [0.02, 0.05],
+                default => [0.10, 0.20],
+            };
+
             for ($i = 0; $i < $extras[$key]; $i++) {
                 $day = ($i * 7 + 3) % $historyDays;
                 $date = $start->copy()->addDays($day);
-                $amountMinor = fake()->numberBetween($scenario['amount_minor_min'], $scenario['amount_minor_max']);
+                $amountMinor = fake()->numberBetween(
+                    (int) round($monthlyTarget * $minPercent),
+                    (int) round($monthlyTarget * $maxPercent),
+                );
                 $rows[] = $this->transactionRow(
                     $business,
                     $scenario,
@@ -452,11 +563,10 @@ class QCashSeeder extends Seeder
             }
         }
 
-        // Deliberate large sales (anomaly) for scenario I.
+        // Deliberate large sales (anomaly) for scenario I, spaced one per block.
         for ($i = 0; $i < $extras['large_sales']; $i++) {
-            $day = ($i * 17 + 5) % $historyDays;
+            $day = (int) floor(($i + 0.5) * $historyDays / $extras['large_sales']);
             $date = $start->copy()->addDays($day);
-            $amountMinor = fake()->numberBetween(5000000, 30000000);
             $rows[] = $this->transactionRow(
                 $business,
                 $scenario,
@@ -464,7 +574,7 @@ class QCashSeeder extends Seeder
                 $day,
                 $idx++,
                 $date,
-                $amountMinor,
+                600000,
                 'till_payment_received',
                 'inflow',
                 'completed',
@@ -475,7 +585,10 @@ class QCashSeeder extends Seeder
         for ($i = 0; $i < $extras['missing_ids']; $i++) {
             $day = ($i * 23 + 11) % $historyDays;
             $date = $start->copy()->addDays($day);
-            $amountMinor = fake()->numberBetween($scenario['amount_minor_min'], $scenario['amount_minor_max']);
+            $amountMinor = fake()->numberBetween(
+                (int) round($monthlyTarget * 0.01),
+                (int) round($monthlyTarget * 0.03),
+            );
             $row = $this->transactionRow(
                 $business,
                 $scenario,
@@ -912,9 +1025,7 @@ class QCashSeeder extends Seeder
                 'slug' => 'A_STABLE',
                 'lifecycle' => 'eligible_settled',
                 'pattern' => 'stable',
-                'history_days' => 180,
-                'amount_minor_min' => 10000,
-                'amount_minor_max' => 200000,
+                'history_days' => 120,
                 'tx_min' => 4,
                 'tx_max' => 7,
                 'extras' => ['refunds' => 0, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 0, 'missing_ids' => 0, 'unknown_fraction' => 0],
@@ -927,9 +1038,7 @@ class QCashSeeder extends Seeder
                 'slug' => 'B_VOLATILE',
                 'lifecycle' => 'eligible_active',
                 'pattern' => 'volatile',
-                'history_days' => 150,
-                'amount_minor_min' => 10000,
-                'amount_minor_max' => 500000,
+                'history_days' => 105,
                 'tx_min' => 3,
                 'tx_max' => 9,
                 'extras' => ['refunds' => 3, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 0, 'missing_ids' => 0, 'unknown_fraction' => 0],
@@ -942,9 +1051,7 @@ class QCashSeeder extends Seeder
                 'slug' => 'C_GROWING',
                 'lifecycle' => 'eligible_disbursing',
                 'pattern' => 'growing',
-                'history_days' => 180,
-                'amount_minor_min' => 10000,
-                'amount_minor_max' => 250000,
+                'history_days' => 120,
                 'tx_min' => 3,
                 'tx_max' => 8,
                 'extras' => ['refunds' => 0, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 0, 'missing_ids' => 0, 'unknown_fraction' => 0],
@@ -957,9 +1064,7 @@ class QCashSeeder extends Seeder
                 'slug' => 'D_DECLINING',
                 'lifecycle' => 'ineligible',
                 'pattern' => 'declining',
-                'history_days' => 180,
-                'amount_minor_min' => 10000,
-                'amount_minor_max' => 200000,
+                'history_days' => 120,
                 'tx_min' => 2,
                 'tx_max' => 6,
                 'extras' => ['refunds' => 0, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 0, 'missing_ids' => 0, 'unknown_fraction' => 0],
@@ -972,9 +1077,7 @@ class QCashSeeder extends Seeder
                 'slug' => 'E_WEEKLY',
                 'lifecycle' => 'eligible_overdue',
                 'pattern' => 'weekly',
-                'history_days' => 150,
-                'amount_minor_min' => 10000,
-                'amount_minor_max' => 150000,
+                'history_days' => 105,
                 'tx_min' => 3,
                 'tx_max' => 8,
                 'extras' => ['refunds' => 0, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 0, 'missing_ids' => 0, 'unknown_fraction' => 0],
@@ -987,9 +1090,7 @@ class QCashSeeder extends Seeder
                 'slug' => 'F_MONTHLY',
                 'lifecycle' => 'eligible_defaulted',
                 'pattern' => 'monthly',
-                'history_days' => 180,
-                'amount_minor_min' => 10000,
-                'amount_minor_max' => 300000,
+                'history_days' => 120,
                 'tx_min' => 3,
                 'tx_max' => 8,
                 'extras' => ['refunds' => 0, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 0, 'missing_ids' => 0, 'unknown_fraction' => 0],
@@ -1002,9 +1103,7 @@ class QCashSeeder extends Seeder
                 'slug' => 'G_INTERMITTENT',
                 'lifecycle' => 'ineligible',
                 'pattern' => 'intermittent',
-                'history_days' => 150,
-                'amount_minor_min' => 10000,
-                'amount_minor_max' => 400000,
+                'history_days' => 105,
                 'tx_min' => 1,
                 'tx_max' => 5,
                 'extras' => ['refunds' => 0, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 0, 'missing_ids' => 0, 'unknown_fraction' => 0],
@@ -1018,8 +1117,6 @@ class QCashSeeder extends Seeder
                 'lifecycle' => 'eligible_non_revenue',
                 'pattern' => 'stable',
                 'history_days' => 120,
-                'amount_minor_min' => 10000,
-                'amount_minor_max' => 200000,
                 'tx_min' => 3,
                 'tx_max' => 6,
                 'extras' => ['refunds' => 4, 'capital_injections' => 6, 'internal_transfers' => 5, 'reversals' => 3, 'large_sales' => 0, 'missing_ids' => 0, 'unknown_fraction' => 0],
@@ -1033,8 +1130,6 @@ class QCashSeeder extends Seeder
                 'lifecycle' => 'manual_review',
                 'pattern' => 'stable',
                 'history_days' => 120,
-                'amount_minor_min' => 10000,
-                'amount_minor_max' => 300000,
                 'tx_min' => 3,
                 'tx_max' => 7,
                 'extras' => ['refunds' => 0, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 3, 'missing_ids' => 2, 'unknown_fraction' => 0],
@@ -1048,13 +1143,11 @@ class QCashSeeder extends Seeder
                 'lifecycle' => 'manual_review',
                 'pattern' => 'stable',
                 'history_days' => 120,
-                'amount_minor_min' => 10000,
-                'amount_minor_max' => 150000,
                 'tx_min' => 4,
                 'tx_max' => 8,
-                'extras' => ['refunds' => 0, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 0, 'missing_ids' => 0, 'unknown_fraction' => 0.6],
+                'extras' => ['refunds' => 0, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 0, 'missing_ids' => 0, 'unknown_fraction' => 0.3],
                 'business' => ['name' => 'Acme UnknownType 010', 'type' => 'retail', 'category' => 'misc', 'county' => 'Nakuru', 'town' => 'Naivasha', 'operating_since_days' => 400, 'status' => 'active'],
-                'assessment' => ['status' => 'manual_review', 'reliability' => '50.0000', 'advance_rate' => 0.0, 'recovery_rate_bps' => 1000, 'reason_codes' => ['HIGH_UNCLASSIFIED_RATE'], 'warnings' => ['> 50% transactions unclassified']],
+                'assessment' => ['status' => 'manual_review', 'reliability' => '50.0000', 'advance_rate' => 0.0, 'recovery_rate_bps' => 1000, 'reason_codes' => ['HIGH_UNCLASSIFIED_RATE'], 'warnings' => ['30% transactions unclassified']],
                 'advance' => null,
             ],
             [
@@ -1064,8 +1157,6 @@ class QCashSeeder extends Seeder
                 'extra_offer' => 'pending',
                 'pattern' => 'stable',
                 'history_days' => 60,
-                'amount_minor_min' => 10000,
-                'amount_minor_max' => 120000,
                 'tx_min' => 3,
                 'tx_max' => 6,
                 'extras' => ['refunds' => 0, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 0, 'missing_ids' => 0, 'unknown_fraction' => 0],
@@ -1078,9 +1169,7 @@ class QCashSeeder extends Seeder
                 'slug' => 'FRESH',
                 'lifecycle' => 'insufficient_data',
                 'pattern' => 'stable',
-                'history_days' => 45,
-                'amount_minor_min' => 10000,
-                'amount_minor_max' => 100000,
+                'history_days' => 60,
                 'tx_min' => 1,
                 'tx_max' => 3,
                 'extras' => ['refunds' => 0, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 0, 'missing_ids' => 0, 'unknown_fraction' => 0],
@@ -1093,9 +1182,7 @@ class QCashSeeder extends Seeder
                 'slug' => 'EXPOSURE',
                 'lifecycle' => 'ineligible_exposure',
                 'pattern' => 'stable',
-                'history_days' => 180,
-                'amount_minor_min' => 10000,
-                'amount_minor_max' => 200000,
+                'history_days' => 120,
                 'tx_min' => 4,
                 'tx_max' => 7,
                 'extras' => ['refunds' => 0, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 0, 'missing_ids' => 0, 'unknown_fraction' => 0],
@@ -1109,9 +1196,7 @@ class QCashSeeder extends Seeder
                 'lifecycle' => 'eligible_active',
                 'extra_offer' => 'rejected',
                 'pattern' => 'micro_vendor',
-                'history_days' => 150,
-                'amount_minor_min' => 2000,
-                'amount_minor_max' => 20000,
+                'history_days' => 105,
                 'tx_min' => 8,
                 'tx_max' => 15,
                 'extras' => ['refunds' => 0, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 0, 'missing_ids' => 0, 'unknown_fraction' => 0],
@@ -1125,9 +1210,7 @@ class QCashSeeder extends Seeder
                 'lifecycle' => 'eligible_settled',
                 'extra_offer' => 'expired',
                 'pattern' => 'micro_service',
-                'history_days' => 150,
-                'amount_minor_min' => 50000,
-                'amount_minor_max' => 1500000,
+                'history_days' => 105,
                 'tx_min' => 1,
                 'tx_max' => 3,
                 'extras' => ['refunds' => 0, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 0, 'missing_ids' => 0, 'unknown_fraction' => 0],
@@ -1140,9 +1223,7 @@ class QCashSeeder extends Seeder
                 'slug' => 'PENDING',
                 'lifecycle' => 'none',
                 'pattern' => 'stable',
-                'history_days' => 30,
-                'amount_minor_min' => 10000,
-                'amount_minor_max' => 100000,
+                'history_days' => 60,
                 'tx_min' => 1,
                 'tx_max' => 3,
                 'extras' => ['refunds' => 0, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 0, 'missing_ids' => 0, 'unknown_fraction' => 0],
@@ -1156,8 +1237,6 @@ class QCashSeeder extends Seeder
                 'lifecycle' => 'none',
                 'pattern' => 'stable',
                 'history_days' => 60,
-                'amount_minor_min' => 10000,
-                'amount_minor_max' => 150000,
                 'tx_min' => 2,
                 'tx_max' => 5,
                 'extras' => ['refunds' => 0, 'capital_injections' => 0, 'internal_transfers' => 0, 'reversals' => 0, 'large_sales' => 0, 'missing_ids' => 0, 'unknown_fraction' => 0],

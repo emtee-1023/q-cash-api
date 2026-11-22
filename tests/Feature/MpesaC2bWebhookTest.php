@@ -92,7 +92,8 @@ test('a duplicate c2b confirmation is only ingested and notified once', function
 
     expect(Transaction::query()->count())->toBe(1)
         ->and(ProviderWebhookEvent::query()->count())->toBe(1)
-        ->and($sms->messages[$owner->phone_number] ?? [])->toHaveCount(1);
+        ->and($sms->messages[$owner->phone_number] ?? [])->toHaveCount(1)
+        ->and($owner->notifications()->count())->toBe(1);
 });
 
 test('a successful c2b confirmation sends an mpesa confirmation sms to the business owner', function () {
@@ -106,6 +107,8 @@ test('a successful c2b confirmation sends an mpesa confirmation sms to the busin
 
     expect($sms->lastMessageFor($owner->phone_number))
         ->toBe('RKTQDM7W6S Confirmed. Ksh150.75 received from John Doe Kamau xxx on 15/01/26 at 12:30 PM.');
+
+    expect($owner->notifications()->sole()->type)->toBe('payment_received');
 });
 
 test('the confirmation sms masks a hashed msisdn from the sender description', function () {

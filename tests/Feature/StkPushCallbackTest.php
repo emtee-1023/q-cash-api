@@ -84,6 +84,8 @@ test('a successful stk callback creates a transaction and notifies the owner', f
         ->and($stkPush->transaction_id)->toBe($transaction->id)
         ->and($sms->lastMessageFor($owner->phone_number))
         ->toBe('Confirmed. STK push for KES 10.00 has been paid successfully by phone number 254708374149 on 15/01/26 at 12:30 PM.');
+
+    expect($owner->notifications()->sole()->type)->toBe('payment_received');
 });
 
 test('a duplicate stk callback is only processed once', function () {
@@ -103,6 +105,7 @@ test('a duplicate stk callback is only processed once', function () {
 
     expect(Transaction::query()->count())->toBe(1)
         ->and($sms->messages[$owner->phone_number] ?? [])->toHaveCount(1)
+        ->and($owner->notifications()->count())->toBe(1)
         ->and($stkPush->refresh()->status)->toBe(StkPushStatus::Successful);
 });
 

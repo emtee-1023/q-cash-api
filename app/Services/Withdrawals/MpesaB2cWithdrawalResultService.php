@@ -4,6 +4,7 @@ namespace App\Services\Withdrawals;
 
 use App\Enums\BusinessWithdrawalStatus;
 use App\Models\BusinessWithdrawal;
+use App\Services\Notifications\BusinessNotifier;
 use App\Services\Sms\WithdrawalConfirmationSms;
 use App\Services\Wallets\BusinessWalletService;
 use Illuminate\Support\Arr;
@@ -14,6 +15,7 @@ class MpesaB2cWithdrawalResultService
     public function __construct(
         private readonly BusinessWalletService $wallets,
         private readonly WithdrawalConfirmationSms $confirmationSms,
+        private readonly BusinessNotifier $notifier,
     ) {}
 
     /**
@@ -56,6 +58,12 @@ class MpesaB2cWithdrawalResultService
             ]);
 
             $this->confirmationSms->send(
+                $withdrawal->business,
+                $withdrawal,
+                $receipt !== '' ? $receipt : null,
+            );
+
+            $this->notifier->withdrawalCompleted(
                 $withdrawal->business,
                 $withdrawal,
                 $receipt !== '' ? $receipt : null,

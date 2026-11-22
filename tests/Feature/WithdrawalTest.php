@@ -228,6 +228,8 @@ test('a successful b2c withdrawal result notifies the owner and keeps the debit'
         ->and($wallet->entries()->where('entry_type', BusinessWalletEntryType::Refund->value)->count())->toBe(0)
         ->and($sms->lastMessageFor($owner->phone_number))
         ->toBe('QCash: A withdrawal of KES 30.00 has been sent to your M-Pesa account. Ref: TESTWD001. Thank you for using QCash.');
+
+    expect($owner->notifications()->sole()->type)->toBe('withdrawal_completed');
 });
 
 test('a failed b2c withdrawal result refunds the wallet only once', function () {

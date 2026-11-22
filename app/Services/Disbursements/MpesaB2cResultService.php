@@ -5,6 +5,7 @@ namespace App\Services\Disbursements;
 use App\Enums\DisbursementStatus;
 use App\Models\Disbursement;
 use App\Services\Advances\AdvanceService;
+use App\Services\Notifications\BusinessNotifier;
 use App\Services\Sms\DisbursementConfirmationSms;
 use Illuminate\Support\Arr;
 
@@ -13,6 +14,7 @@ class MpesaB2cResultService
     public function __construct(
         private readonly AdvanceService $advances,
         private readonly DisbursementConfirmationSms $confirmationSms,
+        private readonly BusinessNotifier $notifier,
     ) {}
 
     /**
@@ -73,6 +75,12 @@ class MpesaB2cResultService
             );
 
             $this->confirmationSms->send(
+                $disbursement->advance->business,
+                $disbursement,
+                $receipt !== '' ? $receipt : null,
+            );
+
+            $this->notifier->advanceDisbursed(
                 $disbursement->advance->business,
                 $disbursement,
                 $receipt !== '' ? $receipt : null,

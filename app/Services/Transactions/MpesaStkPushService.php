@@ -7,6 +7,7 @@ use App\Enums\TransactionDirection;
 use App\Models\Business;
 use App\Models\StkPushRequest;
 use App\Services\Daraja\DarajaClient;
+use App\Services\Notifications\BusinessNotifier;
 use App\Services\Sms\MpesaConfirmationSms;
 use App\Support\Money;
 use App\Support\MpesaTimestamp;
@@ -22,6 +23,7 @@ class MpesaStkPushService
         private readonly DarajaClient $daraja,
         private readonly TransactionIngestionService $ingestion,
         private readonly MpesaConfirmationSms $confirmationSms,
+        private readonly BusinessNotifier $notifier,
     ) {}
 
     /**
@@ -198,6 +200,7 @@ class MpesaStkPushService
 
         if ($transaction !== null && $transaction->wasRecentlyCreated) {
             $this->confirmationSms->send($stkPush->business, $transaction);
+            $this->notifier->paymentReceived($stkPush->business, $transaction);
         }
 
         return $stkPush->refresh();
