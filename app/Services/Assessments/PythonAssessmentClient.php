@@ -9,7 +9,6 @@ class PythonAssessmentClient
 {
     public function __construct(
         private readonly ?string $baseUrl,
-        private readonly ?string $apiKey = null,
     ) {}
 
     /**
@@ -25,13 +24,9 @@ class PythonAssessmentClient
             throw new RuntimeException('The Python ML API base URL is not configured (QCASH_ML_API_URL).');
         }
 
-        $request = Http::acceptJson()->timeout(60);
-
-        if ($this->apiKey !== null && $this->apiKey !== '') {
-            $request->withHeader('X-API-Key', $this->apiKey);
-        }
-
-        $response = $request->post(rtrim($this->baseUrl, '/').'/api/v1/assessments', $payload);
+        $response = Http::acceptJson()
+            ->timeout(60)
+            ->post(rtrim($this->baseUrl, '/').'/assess', $payload);
 
         if ($response->failed()) {
             throw new RuntimeException('Python ML API request failed: '.$response->body());

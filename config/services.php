@@ -52,7 +52,6 @@ return [
 
     'ml_api' => [
         'url' => env('QCASH_ML_API_URL'),
-        'key' => env('QCASH_ML_API_KEY'),
     ],
 
     'mpesa' => [

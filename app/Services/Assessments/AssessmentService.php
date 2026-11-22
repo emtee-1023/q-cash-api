@@ -9,10 +9,7 @@ use App\Models\Business;
 use App\Models\EraAssessment;
 use App\Models\Transaction;
 use App\Models\User;
-use App\Support\BasisPoints;
-use App\Support\Money;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class AssessmentService
@@ -23,9 +20,8 @@ class AssessmentService
      * Request an assessment from the Python ML/Decision API and persist the
      * result as a new, immutable snapshot.
      *
-     * The Python API speaks major-unit KES amounts and mixed rate scales; this
-     * service converts to/from the internal integer minor-unit and basis-point
-     * conventions at the boundary.
+     * The API speaks integer minor units and basis points throughout, which
+     * matches the internal conventions, so values are stored without scaling.
      *
      * @param  array<string, mixed>  $options
      */
@@ -41,9 +37,7 @@ class AssessmentService
     }
 
     /**
-     * Assemble the request payload expected by the Python /api/v1/assessments
-     * endpoint. Transaction amounts are converted from minor units to signed
-     * major-unit KES and direction is mapped to credit/debit.
+     * Assemble the request payload expected by the Python /assess endpoint.
      *
      * @param  array<string, mixed>  $options
      * @return array<string, mixed>
@@ -60,37 +54,62 @@ class AssessmentService
 
         return [
             'business_id' => $business->public_id,
-            'assessment_reference' => (string) Str::orderedUuid(),
-            'assessment_date' => now()->toIso8601String(),
+            'sector' => $this->sector($business),
+            'assessment_as_of' => now()->toIso8601String(),
             'transactions' => $transactions,
+            'repayment' => $this->buildRepayment($business),
+            'exposure' => $this->buildExposure($business),
             'business_profile' => [
                 'business_type' => $business->businessType?->slug,
-                'sector' => $business->businessType?->category,
+                'sector' => $this->sector($business),
                 'cohort' => null,
                 'registration_date' => $business->operating_since?->toDateString(),
             ],
-            'repayment_history' => $this->buildRepaymentHistory($business),
-            'exposure' => $this->buildExposure($business),
         ];
     }
 
     /**
-     * @return array<string, int>
+     * Map the internal business type to one of the sectors the engine knows.
+     * Unknown values fall back to general retail (the engine's generic margin).
      */
-    private function buildRepaymentHistory(Business $business): array
+    private function sector(Business $business): string
     {
-        $advances = $business->advances()->get();
+        $businessType = $business->businessType;
+
+        return match ($businessType?->slug) {
+            'mama-mboga' => 'greengrocer',
+            'small-restaurant-cafe' => 'food_vendor',
+            'salon-barbershop' => 'barbershop',
+            'boutique-fashion' => 'secondhand_clothing',
+            'hardware-store' => 'hardware',
+            default => match ($businessType?->category) {
+                'food' => 'food_vendor',
+                default => 'general_retail',
+            },
+        };
+    }
+
+    /**
+     * @return array{settled_count: int, on_time_count: int}
+     */
+    private function buildRepayment(Business $business): array
+    {
+        $settled = $business->advances()
+            ->where('status', AdvanceStatus::Settled->value)
+            ->get();
+
+        $onTime = $settled->filter(fn ($advance) => $advance->settled_at !== null
+            && $advance->due_at !== null
+            && $advance->settled_at->lessThanOrEqualTo($advance->due_at));
 
         return [
-            'advances_count' => $advances->count(),
-            'on_time_count' => $advances->filter(fn ($advance) => $advance->status === AdvanceStatus::Settled)->count(),
-            'late_count' => $advances->filter(fn ($advance) => $advance->status === AdvanceStatus::Overdue)->count(),
-            'default_count' => $advances->filter(fn ($advance) => $advance->status === AdvanceStatus::Defaulted)->count(),
+            'settled_count' => $settled->count(),
+            'on_time_count' => $onTime->count(),
         ];
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<string, int|bool>
      */
     private function buildExposure(Business $business): array
     {
@@ -102,10 +121,12 @@ class AssessmentService
             ])
             ->get();
 
+        $overdue = $active->filter(fn ($advance) => $advance->status === AdvanceStatus::Overdue);
+
         return [
-            'outstanding_principal' => $this->minorToMajor($active->sum('outstanding_balance_minor')),
-            'active_advances' => $active->count(),
-            'max_exposure_kes' => null,
+            'outstanding_minor' => (int) $active->sum('outstanding_balance_minor'),
+            'overdue_minor' => (int) $overdue->sum('outstanding_balance_minor'),
+            'has_overdue' => $overdue->isNotEmpty(),
         ];
     }
 
@@ -115,17 +136,15 @@ class AssessmentService
     private function mapTransaction(Transaction $transaction): array
     {
         $isInflow = $transaction->direction === TransactionDirection::Inflow;
-        $signedMinor = $isInflow ? $transaction->amount_minor : -$transaction->amount_minor;
 
         return [
-            'transaction_id' => (string) $transaction->id,
-            'transaction_date' => $transaction->transaction_time->toIso8601String(),
-            'amount' => $this->minorToMajor($signedMinor),
-            'direction' => $isInflow ? 'credit' : 'debit',
-            'status' => $transaction->provider_status,
-            'transaction_type' => $transaction->transaction_type,
+            'ref' => (string) $transaction->id,
+            'occurred_at' => $transaction->transaction_time->toIso8601String(),
+            'amount_minor' => $transaction->amount_minor,
+            'type' => $isInflow ? 'credit' : 'debit',
+            'is_reversal_of' => null,
             'reference' => $transaction->counterparty_reference,
-            'counterparty' => $transaction->counterparty_name,
+            'payer_hash' => null,
         ];
     }
 
@@ -136,16 +155,38 @@ class AssessmentService
     protected function validateResponse(array $response): array
     {
         return Validator::make($response, [
-            'assessment_status' => ['required', Rule::in(array_column(AssessmentStatus::cases(), 'value'))],
-            'predicted_revenue' => ['nullable', 'numeric', 'min:0'],
-            'forecast_period_days' => ['required', 'integer', 'min:1'],
-            'reliability_score' => ['required', 'numeric', 'between:0,100'],
-            'recommended_advance_rate' => ['required', 'numeric', 'between:0,1'],
-            'recommended_advance_amount' => ['required', 'numeric', 'min:0'],
-            'recommended_recovery_rate' => ['required', 'numeric', 'min:0'],
-            'maximum_repayment_days' => ['required', 'integer', 'min:1'],
-            'score_breakdown' => ['sometimes', 'array'],
+            'status' => ['required', Rule::in(['eligible', 'not_eligible', 'insufficient_data'])],
             'reason_codes' => ['sometimes', 'array'],
+            'detail' => ['sometimes', 'array'],
+            'model_version' => ['sometimes', 'nullable', 'string'],
+            'history_tier' => ['sometimes', 'nullable', 'string'],
+            'observed_days' => ['sometimes', 'nullable', 'integer'],
+            'intelligence' => ['sometimes', 'array'],
+            'prediction' => ['required_unless:status,insufficient_data', 'array'],
+            'prediction.horizon_days' => ['sometimes', 'integer'],
+            'prediction.point_minor' => ['sometimes', 'integer'],
+            'prediction.lower_bound_minor' => ['sometimes', 'integer'],
+            'prediction.method' => ['sometimes', 'string'],
+            'reliability' => ['required_unless:status,insufficient_data', 'array'],
+            'reliability.score' => ['sometimes', 'nullable', 'numeric', 'between:0,100'],
+            'reliability.band' => ['sometimes', 'nullable', 'string'],
+            'reliability.components' => ['sometimes', 'array'],
+            'reliability.weights_renormalised' => ['sometimes', 'boolean'],
+            'recommendation' => ['required_unless:status,insufficient_data', 'array'],
+            'recommendation.status' => ['sometimes', 'string'],
+            'recommendation.amount_minor' => ['sometimes', 'integer', 'min:0'],
+            'recommendation.advance_rate_bps' => ['sometimes', 'integer', 'min:0'],
+            'recommendation.binding_constraint' => ['sometimes', 'string'],
+            'recommendation.reason_codes' => ['sometimes', 'array'],
+            'recommendation.fee_minor' => ['sometimes', 'integer', 'min:0'],
+            'recommendation.total_repayable_minor' => ['sometimes', 'integer', 'min:0'],
+            'recommendation.affordability_capacity_minor' => ['sometimes', 'integer', 'min:0'],
+            'terms' => ['required_unless:status,insufficient_data', 'array'],
+            'terms.term_days' => ['sometimes', 'integer'],
+            'terms.max_repayment_days' => ['sometimes', 'integer'],
+            'terms.recovery_rate_bps' => ['sometimes', 'integer', 'min:0'],
+            'terms.daily_cap_bps' => ['sometimes', 'integer'],
+            'terms.fallback' => ['sometimes', 'string'],
             'warnings' => ['sometimes', 'array'],
         ])->validate();
     }
@@ -164,59 +205,48 @@ class AssessmentService
         ?User $requestedBy,
         array $options,
     ): EraAssessment {
+        $prediction = $validated['prediction'] ?? [];
+        $reliability = $validated['reliability'] ?? [];
+        $recommendation = $validated['recommendation'] ?? [];
+        $terms = $validated['terms'] ?? [];
+
         return EraAssessment::create([
             'business_id' => $business->id,
             'model_version_id' => $options['model_version_id'] ?? null,
             'decision_policy_id' => $options['decision_policy_id'] ?? null,
             'requested_by_user_id' => $requestedBy?->id,
-            'assessment_status' => AssessmentStatus::from($validated['assessment_status']),
+            'assessment_status' => $this->mapStatus($validated['status']),
             'assessment_date' => now(),
-            'forecast_period_days' => $validated['forecast_period_days'],
-            'predicted_revenue_minor' => $validated['predicted_revenue'] !== null
-                ? $this->majorToMinor($validated['predicted_revenue'])
-                : null,
-            'reliability_score' => $validated['reliability_score'],
-            'recommended_advance_rate_bps' => $this->advanceRateToBasisPoints($validated['recommended_advance_rate']),
-            'recommended_advance_amount_minor' => $this->majorToMinor($validated['recommended_advance_amount']),
-            'recommended_recovery_rate_bps' => $this->recoveryRateToBasisPoints($validated['recommended_recovery_rate']),
-            'maximum_repayment_days' => $validated['maximum_repayment_days'],
-            'score_breakdown' => $validated['score_breakdown'] ?? [],
+            'forecast_period_days' => $prediction['horizon_days'] ?? 30,
+            'predicted_revenue_minor' => $prediction['point_minor'] ?? null,
+            'reliability_score' => $reliability['score'] ?? null,
+            'recommended_advance_rate_bps' => $recommendation['advance_rate_bps'] ?? null,
+            'recommended_advance_amount_minor' => $recommendation['amount_minor'] ?? null,
+            'recommended_recovery_rate_bps' => $terms['recovery_rate_bps'] ?? null,
+            'maximum_repayment_days' => $terms['max_repayment_days'] ?? null,
+            'score_breakdown' => $reliability,
             'reason_codes' => $validated['reason_codes'] ?? [],
-            'warnings' => $validated['warnings'] ?? [],
+            'warnings' => $validated['warnings'] ?? $this->warnings($validated),
             'input_snapshot' => $input,
             'output_snapshot' => $rawResponse,
         ]);
     }
 
-    /**
-     * Convert an integer minor-unit amount to major-unit KES for the wire.
-     */
-    private function minorToMajor(int $minor): float
+    private function mapStatus(string $status): AssessmentStatus
     {
-        return (float) Money::of($minor)->toMajor();
+        return match ($status) {
+            'eligible' => AssessmentStatus::Eligible,
+            'not_eligible' => AssessmentStatus::Ineligible,
+            default => AssessmentStatus::InsufficientData,
+        };
     }
 
     /**
-     * Convert a major-unit KES amount from the wire into integer minor units.
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
      */
-    private function majorToMinor(float|int|string $major): int
+    private function warnings(array $validated): array
     {
-        return Money::fromMajor((string) $major)->minor;
-    }
-
-    /**
-     * The Python API reports the advance rate as a decimal fraction (0.3 = 30%).
-     */
-    private function advanceRateToBasisPoints(float|int|string $rate): int
-    {
-        return BasisPoints::fromRate((string) $rate)->value;
-    }
-
-    /**
-     * The Python API reports the recovery rate as a percentage (10.0 = 10%).
-     */
-    private function recoveryRateToBasisPoints(float|int|string $rate): int
-    {
-        return BasisPoints::fromPercent((string) $rate)->value;
+        return isset($validated['detail']) ? ['detail' => $validated['detail']] : [];
     }
 }
