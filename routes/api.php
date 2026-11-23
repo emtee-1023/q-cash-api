@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\Auth\AdminLoginController;
 use App\Http\Controllers\Admin\BusinessController as AdminBusinessController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\AdvanceController;
+use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AssessmentController;
 use App\Http\Controllers\Api\BusinessController;
 use App\Http\Controllers\Api\BusinessInvitationController;
@@ -126,6 +127,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('businesses/{business}/payment-accounts', [PaymentAccountController::class, 'store']);
     Route::get('businesses/{business}/wallet', [WalletController::class, 'show'])
         ->name('businesses.wallet.show');
+    Route::get('businesses/{business}/analytics', [AnalyticsController::class, 'show'])
+        ->name('businesses.analytics.show');
     Route::get('businesses/{business}/withdrawals', [WithdrawalController::class, 'index'])
         ->name('businesses.withdrawals.index');
     Route::post('businesses/{business}/withdrawals', [WithdrawalController::class, 'store'])
