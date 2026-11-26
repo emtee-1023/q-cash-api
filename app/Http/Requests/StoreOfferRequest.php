@@ -18,6 +18,7 @@ class StoreOfferRequest extends FormRequest
     {
         return [
             'assessment_id' => ['required', 'integer', 'exists:era_assessments,id'],
+            'requested_amount_minor' => ['nullable', 'integer', 'min:1'],
             'fee_amount_minor' => ['nullable', 'integer', 'min:0'],
             'expires_in_days' => ['nullable', 'integer', 'min:1'],
             'fallback_terms' => ['nullable', 'array'],

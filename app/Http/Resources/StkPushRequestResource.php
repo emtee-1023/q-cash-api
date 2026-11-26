@@ -19,6 +19,7 @@ class StkPushRequestResource extends JsonResource
         return [
             'id' => $this->id,
             'business_id' => $this->business_id,
+            'purpose' => $this->purpose?->value,
             'merchant_request_id' => $this->merchant_request_id,
             'checkout_request_id' => $this->checkout_request_id,
             'phone_number' => $this->phone_number,

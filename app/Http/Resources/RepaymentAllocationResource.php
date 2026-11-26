@@ -21,6 +21,8 @@ class RepaymentAllocationResource extends JsonResource
             'repayment_collection_id' => $this->repayment_collection_id,
             'advance_id' => $this->advance_id,
             'amount_minor' => $this->amount_minor,
+            'fee_amount_minor' => $this->fee_amount_minor,
+            'principal_amount_minor' => $this->principal_amount_minor,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

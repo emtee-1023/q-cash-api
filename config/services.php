@@ -47,7 +47,8 @@ return [
         'username' => env('AFRICASTALKING_USERNAME'),
         'api_key' => env('AFRICASTALKING_API_KEY'),
         'endpoint' => env('AFRICASTALKING_ENDPOINT'),
-
+        'ussd_service_code' => env('AFRICASTALKING_USSD_SERVICE_CODE'),
+        'ussd_session_ttl_minutes' => (int) env('AFRICASTALKING_USSD_SESSION_TTL_MINUTES', 5),
     ],
 
     'ml_api' => [

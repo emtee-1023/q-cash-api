@@ -9,6 +9,7 @@ use App\Models\BusinessUser;
 use App\Models\Disbursement;
 use App\Models\User;
 use App\Services\Disbursements\MpesaB2cDisbursementService;
+use App\Services\Wallets\BusinessWalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -124,59 +125,32 @@ function processingB2cDisbursement(Advance $advance): Disbursement
     ]);
 }
 
-test('disbursement sends the advance principal to the owner phone via b2c', function () {
-    b2cConfig();
+test('the disburse endpoint credits the advance principal to the wallet', function () {
     [$business, $owner] = b2cBusinessOwner();
     $advance = b2cAdvance($business);
 
-    Http::preventStrayRequests();
-
-    Http::fake([
-        'https://sandbox.safaricom.co.ke/oauth/v1/generate*' => Http::response([
-            'access_token' => 'test-token',
-        ]),
-        'https://sandbox.safaricom.co.ke/mpesa/b2c/v3/paymentrequest' => Http::response([
-            'ConversationID' => 'AG_20260115_00001',
-            'OriginatorConversationID' => 'ignored',
-            'ResponseCode' => '0',
-            'ResponseDescription' => 'Accept the service request successfully.',
-        ]),
-    ]);
+    $sms = new FakeSmsSender;
+    $this->instance(SmsSender::class, $sms);
 
     Sanctum::actingAs($owner);
 
     $this->postJson("/api/advances/{$advance->id}/disburse")
-        ->assertAccepted()
-        ->assertJsonPath('data.status', 'disbursing');
+        ->assertOk()
+        ->assertJsonPath('data.status', 'active');
 
     $disbursement = Disbursement::query()->sole();
 
-    expect($disbursement->provider)->toBe('mpesa_b2c')
-        ->and($disbursement->status)->toBe(DisbursementStatus::Processing)
+    expect($disbursement->provider)->toBe('qcash_wallet')
+        ->and($disbursement->status)->toBe(DisbursementStatus::Successful)
         ->and($disbursement->amount_minor)->toBe(3000000)
-        ->and($disbursement->provider_reference)->toBe('AG_20260115_00001')
-        ->and($disbursement->originator_conversation_id)->not->toBeNull()
-        ->and($disbursement->provider_response['recipient_phone_number'])->toBe('254712345678');
+        ->and($disbursement->provider_reference)->toBe('wallet:'.$advance->id);
 
-    expect($advance->refresh()->status)->toBe(AdvanceStatus::Disbursing);
+    expect($advance->refresh()->status)->toBe(AdvanceStatus::Active)
+        ->and(app(BusinessWalletService::class)->balance($business))->toBe(3000000);
 
-    Http::assertSent(function (Request $request) use ($owner, $disbursement): bool {
-        if (! str_ends_with($request->url(), '/mpesa/b2c/v3/paymentrequest')) {
-            return false;
-        }
-
-        return $request['OriginatorConversationID'] === $disbursement->originator_conversation_id
-            && $request['InitiatorName'] === 'testapi'
-            && $request['SecurityCredential'] === b2cSecurityCredential()
-            && $request['CommandID'] === 'BusinessPayment'
-            && $request['Amount'] === 30000
-            && $request['PartyA'] === '600000'
-            && $request['PartyB'] === $owner->phone_number
-            && $request['Remarks'] === 'QCash advance'
-            && $request['QueueTimeOutURL'] === 'https://example.test/api/webhooks/b2c/timeout'
-            && $request['ResultURL'] === 'https://example.test/api/webhooks/b2c/result'
-            && $request['Occasion'] === 'QCash advance';
-    });
+    expect($sms->lastMessageFor($owner->phone_number))
+        ->toContain('A cash advance of KES 30,000.00 has been credited to your QCash wallet.')
+        ->and($owner->notifications()->sole()->type)->toBe('advance_disbursed');
 });
 
 test('a disbursement cannot be sent when the owner has no phone number', function () {
@@ -306,7 +280,7 @@ test('a successful b2c result activates the advance and notifies the owner', fun
         ->and($advance->status)->toBe(AdvanceStatus::Active)
         ->and($advance->ledgerEntries()->where('entry_type', LedgerEntryType::PrincipalDisbursed->value)->count())->toBe(1)
         ->and($sms->lastMessageFor($owner->phone_number))
-        ->toBe('QCash: A cash advance of KES 30,000.00 has been credited to your acct. Ref: NLJ41HAY6Q. Thank you for using QCash.');
+        ->toBe('QCash: A cash advance of KES 30,000.00 has been credited to your QCash wallet. Ref: NLJ41HAY6Q. Thank you for using QCash.');
 
     expect($owner->notifications()->sole()->type)->toBe('advance_disbursed');
 });

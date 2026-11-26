@@ -26,6 +26,8 @@ class AdvanceResource extends JsonResource
             'fee_amount_minor' => $this->fee_amount_minor,
             'total_repayable_minor' => $this->total_repayable_minor,
             'amount_repaid_minor' => $this->amount_repaid_minor,
+            'fee_repaid_minor' => $this->fee_repaid_minor,
+            'principal_repaid_minor' => $this->principal_repaid_minor,
             'outstanding_balance_minor' => $this->outstanding_balance_minor,
             'recovery_rate_bps' => $this->recovery_rate_bps,
             'maximum_repayment_days' => $this->maximum_repayment_days,

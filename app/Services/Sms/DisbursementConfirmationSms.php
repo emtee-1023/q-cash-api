@@ -22,9 +22,19 @@ class DisbursementConfirmationSms
         }
 
         $message = sprintf(
-            'QCash: A cash advance of %s has been credited to your acct.',
+            'QCash: A cash advance of %s has been credited to your QCash wallet.',
             Money::of($disbursement->amount_minor, 'KES')->formatted('KES'),
         );
+
+        $advance = $disbursement->advance;
+
+        if ($advance !== null && $advance->fee_amount_minor > 0) {
+            $message .= sprintf(
+                ' Access fee: %s. Repay: %s.',
+                Money::of($advance->fee_amount_minor, 'KES')->formatted('KES'),
+                Money::of($advance->total_repayable_minor, 'KES')->formatted('KES'),
+            );
+        }
 
         if (filled($receipt)) {
             $message .= ' Ref: '.$receipt.'.';

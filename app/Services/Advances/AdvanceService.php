@@ -17,7 +17,10 @@ use Illuminate\Validation\ValidationException;
 
 class AdvanceService
 {
-    public function __construct(private readonly AdvanceLedger $ledger) {}
+    public function __construct(
+        private readonly AdvanceLedger $ledger,
+        private readonly AdvanceExposureService $exposure,
+    ) {}
 
     /**
      * Accept an offer and create the corresponding advance, recording the
@@ -32,6 +35,17 @@ class AdvanceService
         }
 
         return DB::transaction(function () use ($offer, $partner) {
+            $limit = (int) (
+                $offer->assessment?->recommended_advance_amount_minor
+                ?? $offer->total_repayable_minor
+            );
+
+            $this->exposure->ensureWithinExposure(
+                $offer->business,
+                $limit,
+                $offer->total_repayable_minor,
+            );
+
             $advance = Advance::create([
                 'offer_id' => $offer->id,
                 'business_id' => $offer->business_id,

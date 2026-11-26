@@ -5,9 +5,12 @@ namespace App\Services\Notifications;
 use App\Models\Business;
 use App\Models\BusinessWithdrawal;
 use App\Models\Disbursement;
+use App\Models\RepaymentCollection;
 use App\Models\Transaction;
 use App\Notifications\AdvanceDisbursed;
 use App\Notifications\PaymentReceived;
+use App\Notifications\RepaymentFailed;
+use App\Notifications\RepaymentReceived;
 use App\Notifications\WithdrawalCompleted;
 use App\Support\BusinessOwner;
 use Illuminate\Notifications\Notification;
@@ -26,6 +29,22 @@ class BusinessNotifier
         ?string $receipt = null,
     ): void {
         $this->send($business, new WithdrawalCompleted($business, $withdrawal, $receipt));
+    }
+
+    public function repaymentFailed(
+        Business $business,
+        int $requestedMinor,
+        int $availableMinor,
+    ): void {
+        $this->send($business, new RepaymentFailed($business, $requestedMinor, $availableMinor));
+    }
+
+    public function repaymentReceived(
+        Business $business,
+        RepaymentCollection $collection,
+        int $outstandingMinor,
+    ): void {
+        $this->send($business, new RepaymentReceived($business, $collection, $outstandingMinor));
     }
 
     public function advanceDisbursed(

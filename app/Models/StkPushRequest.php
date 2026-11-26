@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\StkPushPurpose;
 use App\Enums\StkPushStatus;
 use Database\Factories\StkPushRequestFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'business_id',
+    'purpose',
     'merchant_request_id',
     'checkout_request_id',
     'phone_number',
@@ -36,6 +38,7 @@ class StkPushRequest extends Model
     {
         return [
             'amount_minor' => 'integer',
+            'purpose' => StkPushPurpose::class,
             'status' => StkPushStatus::class,
             'raw_response' => 'array',
             'raw_callback' => 'array',

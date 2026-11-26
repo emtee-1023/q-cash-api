@@ -33,8 +33,17 @@ class AdvanceDisbursed extends Notification
      */
     public function toArray(object $notifiable): array
     {
+        $advance = $this->disbursement->advance;
+
         $body = 'A cash advance of '.Money::of($this->disbursement->amount_minor, 'KES')->formatted('KES')
-            .' has been credited to your business account.';
+            .' has been credited to your QCash wallet.';
+
+        if ($advance !== null && $advance->fee_amount_minor > 0) {
+            $body .= ' Access fee: '
+                .Money::of($advance->fee_amount_minor, 'KES')->formatted('KES')
+                .'. Repay: '
+                .Money::of($advance->total_repayable_minor, 'KES')->formatted('KES').'.';
+        }
 
         if (filled($this->receipt)) {
             $body .= ' Ref: '.$this->receipt.'.';
@@ -49,6 +58,8 @@ class AdvanceDisbursed extends Notification
             'advance_id' => $this->disbursement->advance_id,
             'disbursement_id' => $this->disbursement->id,
             'amount_minor' => $this->disbursement->amount_minor,
+            'access_fee_minor' => $advance?->fee_amount_minor,
+            'total_repayable_minor' => $advance?->total_repayable_minor,
             'currency' => 'KES',
             'reference' => $this->receipt,
             'occurred_at' => ($this->disbursement->completed_at ?? now())->toIso8601String(),

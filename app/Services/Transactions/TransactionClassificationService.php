@@ -6,11 +6,17 @@ use App\Enums\AnomalyStatus;
 use App\Enums\TransactionCategory;
 use App\Models\Transaction;
 use App\Models\TransactionClassification;
+use App\Services\Repayments\RevenueRepaymentService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class TransactionClassificationService
 {
+    public function __construct(
+        private readonly RevenueRepaymentService $revenueRepayments,
+    ) {}
+
     /**
      * Apply a new classification to a transaction, superseding any previous
      * current classification. Prior records are retained as history.
@@ -39,7 +45,7 @@ class TransactionClassificationService
                 ->where('is_current', true)
                 ->update(['is_current' => false]);
 
-            return $transaction->classifications()->create([
+            $classification = $transaction->classifications()->create([
                 'classifier_version' => $classifierVersion,
                 'category' => $category,
                 'revenue_eligible' => $revenueEligible,
@@ -49,6 +55,16 @@ class TransactionClassificationService
                 'is_current' => true,
                 'classified_at' => $classifiedAt ?? now(),
             ]);
+
+            if ($revenueEligible) {
+                try {
+                    $this->revenueRepayments->collectForTransaction($transaction, $classification);
+                } catch (Throwable $exception) {
+                    report($exception);
+                }
+            }
+
+            return $classification;
         });
     }
 }

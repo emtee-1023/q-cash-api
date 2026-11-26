@@ -97,7 +97,7 @@ test('a disbursed advance creates an in-app notification for the business owner'
         ->and($notification->data)->toMatchArray([
             'type' => 'advance_disbursed',
             'title' => 'Advance disbursed',
-            'body' => 'A cash advance of KES 30,000.00 has been credited to your business account. Ref: NLJ41HAY6Q.',
+            'body' => 'A cash advance of KES 30,000.00 has been credited to your QCash wallet. Ref: NLJ41HAY6Q.',
             'business_id' => $business->id,
             'advance_id' => $advance->id,
             'disbursement_id' => $disbursement->id,

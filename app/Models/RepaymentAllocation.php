@@ -9,7 +9,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['repayment_collection_id', 'advance_id', 'amount_minor'])]
+#[Fillable([
+    'repayment_collection_id',
+    'advance_id',
+    'amount_minor',
+    'fee_amount_minor',
+    'principal_amount_minor',
+])]
 class RepaymentAllocation extends Model
 {
     /** @use HasFactory<RepaymentAllocationFactory> */
@@ -19,6 +25,8 @@ class RepaymentAllocation extends Model
     {
         return [
             'amount_minor' => 'integer',
+            'fee_amount_minor' => 'integer',
+            'principal_amount_minor' => 'integer',
         ];
     }
 

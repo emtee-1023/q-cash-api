@@ -16,6 +16,7 @@ class StkPushRequestFactory extends Factory
     {
         return [
             'business_id' => Business::factory(),
+            'purpose' => 'payment',
             'merchant_request_id' => fake()->uuid(),
             'checkout_request_id' => fake()->unique()->uuid(),
             'phone_number' => '254712345678',

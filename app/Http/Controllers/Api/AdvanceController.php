@@ -7,7 +7,7 @@ use App\Http\Resources\AdvanceResource;
 use App\Models\Advance;
 use App\Models\Business;
 use App\Services\Advances\AdvanceService;
-use App\Services\Disbursements\MpesaB2cDisbursementService;
+use App\Services\Disbursements\WalletDisbursementService;
 use Illuminate\Http\Request;
 
 /**
@@ -17,7 +17,7 @@ class AdvanceController extends Controller
 {
     public function __construct(
         private readonly AdvanceService $advances,
-        private readonly MpesaB2cDisbursementService $b2cDisbursements,
+        private readonly WalletDisbursementService $walletDisbursements,
     ) {}
 
     /**
@@ -61,20 +61,18 @@ class AdvanceController extends Controller
     }
 
     /**
-     * Request disbursement
+     * Disburse an advance
      *
-     * Sends the advance principal to the business owner's M-Pesa number via
-     * Safaricom B2C and transitions the advance to the disbursing state.
+     * Credits the advance principal to the business QCash wallet and notifies
+     * the owner by SMS and in-app notification.
      */
     public function disburse(Advance $advance)
     {
         $this->authorize('manage', $advance);
 
-        $this->b2cDisbursements->disburse($advance);
+        $this->walletDisbursements->disburse($advance);
 
         return (new AdvanceResource($advance->refresh()))
-            ->additional(['message' => 'Disbursement requested.'])
-            ->response()
-            ->setStatusCode(202);
+            ->additional(['message' => 'Advance credited to wallet.']);
     }
 }

@@ -2,18 +2,26 @@
 
 namespace App\Services\Transactions;
 
+use App\Enums\CollectionMethod;
+use App\Enums\StkPushPurpose;
 use App\Enums\StkPushStatus;
 use App\Enums\TransactionDirection;
 use App\Models\Business;
+use App\Models\RepaymentCollection;
 use App\Models\StkPushRequest;
+use App\Models\Transaction;
 use App\Services\Daraja\DarajaClient;
 use App\Services\Notifications\BusinessNotifier;
+use App\Services\Repayments\RepaymentAllocationPlanner;
+use App\Services\Repayments\RepaymentService;
 use App\Services\Sms\MpesaConfirmationSms;
+use App\Services\Sms\RepaymentSms;
 use App\Support\Money;
 use App\Support\MpesaTimestamp;
 use App\Support\PhoneNumber;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Throwable;
 
@@ -24,6 +32,9 @@ class MpesaStkPushService
         private readonly TransactionIngestionService $ingestion,
         private readonly MpesaConfirmationSms $confirmationSms,
         private readonly BusinessNotifier $notifier,
+        private readonly RepaymentAllocationPlanner $repaymentPlanner,
+        private readonly RepaymentService $repayments,
+        private readonly RepaymentSms $repaymentSms,
     ) {}
 
     /**
@@ -36,6 +47,7 @@ class MpesaStkPushService
         int $amountMinor,
         ?string $accountReference = null,
         ?string $description = null,
+        StkPushPurpose $purpose = StkPushPurpose::Payment,
     ): StkPushRequest {
         $shortcode = (string) config('services.mpesa.shortcode');
         $passkey = (string) config('services.mpesa.passkey');
@@ -51,6 +63,7 @@ class MpesaStkPushService
         $timestamp = now('Africa/Nairobi')->format('YmdHis');
 
         $stkPush = $business->stkPushRequests()->create([
+            'purpose' => $purpose,
             'phone_number' => $phoneNumber,
             'amount_minor' => $amountMinor,
             'currency' => 'KES',
@@ -161,6 +174,7 @@ class MpesaStkPushService
         }
 
         $transaction = null;
+        $repaymentCollection = null;
 
         DB::transaction(function () use (
             $stkPush,
@@ -170,6 +184,7 @@ class MpesaStkPushService
             $receipt,
             $amount,
             &$transaction,
+            &$repaymentCollection,
         ): void {
             $transaction = $this->ingestion->ingest([
                 'business_id' => $stkPush->business_id,
@@ -196,14 +211,89 @@ class MpesaStkPushService
                 'transaction_id' => $transaction->id,
                 'completed_at' => now(),
             ]);
+
+            $repaymentCollection = $this->recordRepayment($stkPush, $transaction);
         });
 
         if ($transaction !== null && $transaction->wasRecentlyCreated) {
-            $this->confirmationSms->send($stkPush->business, $transaction);
-            $this->notifier->paymentReceived($stkPush->business, $transaction);
+            if ($stkPush->purpose === StkPushPurpose::Repayment
+                && $repaymentCollection !== null
+                && $repaymentCollection->wasRecentlyCreated) {
+                $outstanding = $this->repaymentPlanner->outstandingTotal($stkPush->business);
+
+                $this->notifier->repaymentReceived(
+                    $stkPush->business,
+                    $repaymentCollection,
+                    $outstanding,
+                );
+
+                $this->repaymentSms->paymentReceived(
+                    $stkPush->business,
+                    $repaymentCollection,
+                    $outstanding,
+                );
+            } else {
+                $this->confirmationSms->send($stkPush->business, $transaction);
+                $this->notifier->paymentReceived($stkPush->business, $transaction);
+            }
         }
 
         return $stkPush->refresh();
+    }
+
+    /**
+     * Allocate a confirmed repayment STK push across the business's advances.
+     * The checkout request id makes the allocation idempotent; any amount above
+     * the outstanding balance is left unallocated and logged.
+     */
+    private function recordRepayment(StkPushRequest $stkPush, Transaction $transaction): ?RepaymentCollection
+    {
+        if ($stkPush->purpose !== StkPushPurpose::Repayment) {
+            return null;
+        }
+
+        $plan = $this->repaymentPlanner->plan(
+            $stkPush->business,
+            $transaction->amount_minor,
+            lock: true,
+        );
+
+        $allocated = $transaction->amount_minor - $plan['unallocated_minor'];
+
+        if ($allocated <= 0) {
+            Log::warning('An M-Pesa repayment did not match any outstanding advance.', [
+                'stk_push_request_id' => $stkPush->id,
+                'transaction_id' => $transaction->id,
+                'paid_amount_minor' => $transaction->amount_minor,
+            ]);
+
+            return null;
+        }
+
+        if ($plan['unallocated_minor'] > 0) {
+            Log::warning('An M-Pesa repayment exceeded the outstanding balance.', [
+                'stk_push_request_id' => $stkPush->id,
+                'transaction_id' => $transaction->id,
+                'paid_amount_minor' => $transaction->amount_minor,
+                'unallocated_minor' => $plan['unallocated_minor'],
+            ]);
+        }
+
+        return $this->repayments->recordSuccessfulCollection([
+            'business_id' => $stkPush->business_id,
+            'source_transaction_id' => $transaction->id,
+            'collection_method' => CollectionMethod::ManualPayment->value,
+            'provider' => 'mpesa',
+            'provider_reference' => $transaction->provider_transaction_id,
+            'amount_minor' => $allocated,
+            'currency' => $transaction->currency,
+            'idempotency_key' => 'stk-repayment:'.$stkPush->checkout_request_id,
+            'collected_at' => $transaction->transaction_time,
+            'provider_response' => [
+                'paid_amount_minor' => $transaction->amount_minor,
+                'unallocated_minor' => $plan['unallocated_minor'],
+            ],
+        ], $plan['allocations']);
     }
 
     private function statusForResultCode(int $resultCode): StkPushStatus

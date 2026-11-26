@@ -66,11 +66,20 @@ class RepaymentService
                 // Reversal of a negative repayment entry is a positive amount.
                 $this->ledger->reversal($advance, abs($allocation->amount_minor), allocation: $allocation);
 
+                $feePortion = (int) $allocation->fee_amount_minor;
+                $principalPortion = (int) $allocation->principal_amount_minor;
+
+                if ($feePortion + $principalPortion === 0) {
+                    $principalPortion = $allocation->amount_minor;
+                }
+
                 $newRepaid = $advance->amount_repaid_minor - $allocation->amount_minor;
                 $newOutstanding = $advance->outstanding_balance_minor + $allocation->amount_minor;
 
                 $updates = [
-                    'amount_repaid_minor' => $newRepaid,
+                    'amount_repaid_minor' => max(0, $newRepaid),
+                    'fee_repaid_minor' => max(0, $advance->fee_repaid_minor - $feePortion),
+                    'principal_repaid_minor' => max(0, $advance->principal_repaid_minor - $principalPortion),
                     'outstanding_balance_minor' => $newOutstanding,
                 ];
 
@@ -108,9 +117,15 @@ class RepaymentService
 
             $amount = (int) $allocation['amount_minor'];
 
+            $feeRemaining = max(0, $advance->fee_amount_minor - $advance->fee_repaid_minor);
+            $feePortion = min($amount, $feeRemaining);
+            $principalPortion = $amount - $feePortion;
+
             $allocationModel = $collection->allocations()->create([
                 'advance_id' => $advance->id,
                 'amount_minor' => $amount,
+                'fee_amount_minor' => $feePortion,
+                'principal_amount_minor' => $principalPortion,
             ]);
 
             $this->ledger->repayment($advance, $allocationModel, $amount);
@@ -120,6 +135,8 @@ class RepaymentService
 
             $updates = [
                 'amount_repaid_minor' => $newRepaid,
+                'fee_repaid_minor' => $advance->fee_repaid_minor + $feePortion,
+                'principal_repaid_minor' => $advance->principal_repaid_minor + $principalPortion,
                 'outstanding_balance_minor' => max(0, $newOutstanding),
             ];
 

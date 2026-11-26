@@ -29,9 +29,12 @@ test('an offer is created from an eligible assessment', function () {
     $offer = app(OfferService::class)->createOffer($assessment);
 
     expect($offer->status)->toBe(OfferStatus::Pending);
-    expect($offer->offered_amount_minor)->toBe(3000000);
+    expect($offer->offered_amount_minor)->toBe(2940000);
+    expect($offer->fee_amount_minor)->toBe(60000);
     expect($offer->total_repayable_minor)->toBe(3000000);
-    expect($offer->offer_terms)->toHaveKey('offered_amount_minor');
+    expect($offer->offer_terms)->toHaveKey('offered_amount_minor')
+        ->and($offer->offer_terms['requested_amount_minor'])->toBe(3000000)
+        ->and($offer->offer_terms['access_fee_bps'])->toBe(200);
 });
 
 test('an offer cannot be created from an ineligible assessment', function () {

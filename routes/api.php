@@ -28,6 +28,7 @@ use App\Http\Controllers\Webhooks\MpesaB2cController;
 use App\Http\Controllers\Webhooks\MpesaB2cStatusController;
 use App\Http\Controllers\Webhooks\MpesaC2bController;
 use App\Http\Controllers\Webhooks\MpesaStkController;
+use App\Http\Controllers\Webhooks\UssdController;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -61,6 +62,7 @@ Route::prefix('webhooks')->name('webhooks.')->group(function () {
     Route::post('b2c/timeout', [MpesaB2cController::class, 'timeout'])->name('b2c.timeout');
     Route::post('b2c/status/result', [MpesaB2cStatusController::class, 'result'])->name('b2c.status.result');
     Route::post('b2c/status/timeout', [MpesaB2cStatusController::class, 'timeout'])->name('b2c.status.timeout');
+    Route::post('ussd', UssdController::class)->name('ussd');
 });
 
 Route::post('auth/register', [RegisterController::class, 'register']);
@@ -129,6 +131,10 @@ Route::middleware('auth:sanctum')->group(function () {
         ->name('businesses.wallet.show');
     Route::get('businesses/{business}/analytics', [AnalyticsController::class, 'show'])
         ->name('businesses.analytics.show');
+    Route::post('businesses/{business}/repayments/wallet', [RepaymentController::class, 'fromWallet'])
+        ->name('businesses.repayments.wallet');
+    Route::post('businesses/{business}/repayments/mpesa', [RepaymentController::class, 'viaMpesa'])
+        ->name('businesses.repayments.mpesa');
     Route::get('businesses/{business}/withdrawals', [WithdrawalController::class, 'index'])
         ->name('businesses.withdrawals.index');
     Route::post('businesses/{business}/withdrawals', [WithdrawalController::class, 'store'])
