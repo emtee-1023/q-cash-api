@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Enums\AdvanceStatus;
 use App\Enums\AssessmentStatus;
+use App\Enums\BusinessWalletEntryType;
 use App\Enums\CollectionMethod;
 use App\Enums\CollectionStatus;
 use App\Enums\DisbursementStatus;
@@ -128,7 +129,36 @@ class QCashSeeder extends Seeder
             if ($scenario['lifecycle'] !== 'none') {
                 $this->seedLifecycle($business, $scenario, $transactions, $partners, $modelVersion, $policy);
             }
+
+            $this->seedWallet($business);
         }
+    }
+
+    /**
+     * Give every demo business enough wallet balance to clear its outstanding
+     * advances immediately, plus KES 500 for a quick follow-up advance.
+     */
+    private function seedWallet(Business $business): void
+    {
+        $outstanding = (int) $business->advances()->sum('outstanding_balance_minor');
+        $balance = $outstanding + 50000;
+
+        $wallet = $business->wallet()->updateOrCreate(
+            ['business_id' => $business->id],
+            ['balance_minor' => $balance, 'currency' => 'KES'],
+        );
+
+        if (! $wallet->wasRecentlyCreated) {
+            return;
+        }
+
+        $wallet->entries()->create([
+            'entry_type' => BusinessWalletEntryType::Credit,
+            'amount_minor' => $balance,
+            'balance_after_minor' => $balance,
+            'description' => 'Seeded demo balance',
+            'reference' => 'seed:demo-wallet',
+        ]);
     }
 
     /**

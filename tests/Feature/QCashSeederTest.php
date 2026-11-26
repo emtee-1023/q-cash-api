@@ -38,6 +38,14 @@ test('every business has between 60 and 120 days of transaction history', functi
     }
 });
 
+test('each business wallet has kes 500 more than its outstanding balance', function () {
+    foreach (Business::query()->with(['advances', 'wallet'])->get() as $business) {
+        $outstanding = (int) $business->advances->sum('outstanding_balance_minor');
+
+        expect($business->wallet?->balance_minor)->toBe($outstanding + 50000, "{$business->business_name} wallet is not outstanding + KES 500.");
+    }
+});
+
 test('each full trading month earns between 7600 and 14000', function () {
     foreach (Business::query()->with(['transactions.currentClassification'])->get() as $business) {
         $transactions = $business->transactions->sortBy('transaction_time')->values();
