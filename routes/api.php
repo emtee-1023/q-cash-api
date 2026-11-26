@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\Auth\AdminActivationController;
 use App\Http\Controllers\Admin\Auth\AdminLoginController;
 use App\Http\Controllers\Admin\BusinessController as AdminBusinessController;
+use App\Http\Controllers\Admin\LendingController as AdminLendingController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\AdvanceController;
 use App\Http\Controllers\Api\AnalyticsController;
@@ -94,7 +95,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('me', [AdminLoginController::class, 'me'])->name('me');
         Route::post('logout', [AdminLoginController::class, 'logout'])->name('logout');
 
+        Route::get('lending', [AdminLendingController::class, 'index'])->name('lending.index');
+
         Route::get('businesses', [AdminBusinessController::class, 'index'])->name('businesses.index');
+        Route::get('businesses/{business}/lending', [AdminLendingController::class, 'show'])
+            ->name('businesses.lending');
         Route::get('businesses/{business}', [AdminBusinessController::class, 'show'])->name('businesses.show');
         Route::patch('businesses/{business}', [AdminBusinessController::class, 'update'])->name('businesses.update');
         Route::patch('businesses/{business}/status', [AdminBusinessController::class, 'updateStatus'])
