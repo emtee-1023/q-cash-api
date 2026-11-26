@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Q-Cash — Low-Fidelity Wireframes</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    background:#dcdcdc;
+    font-family: Helvetica, Arial, sans-serif;
+    color:#000;
+    margin:0;
+    padding:30px 20px 80px;
+  }
+  .page-title { text-align:center; margin-bottom:4px; font-size:24px; letter-spacing:1px; }
+  .page-sub { text-align:center; color:#444; font-size:13px; margin-bottom:40px; }
+
+  /* ---- Flow diagram ---- */
+  .flow-wrap { background:#fff; border:1px solid #000; padding:20px; max-width:1100px; margin:0 auto 50px; }
+  .flow-title { font-weight:bold; font-size:13px; text-transform:uppercase; margin-bottom:12px; letter-spacing:1px;}
+  .flow-diagram { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-bottom:18px; }
+  .flow-node { border:1px solid #000; padding:7px 10px; font-size:10px; background:#fff; white-space:nowrap; }
+  .flow-arrow { font-size:14px; color:#333; }
+
+  /* ---- Group sections ---- */
+  .group-section { max-width:1200px; margin:0 auto 60px; }
+  .group-title { font-size:16px; text-transform:uppercase; letter-spacing:1px; border-bottom:2px solid #000; padding-bottom:8px; margin-bottom:24px; }
+  .screens-grid { display:flex; flex-wrap:wrap; gap:36px; justify-content:flex-start; }
+  .screen-block { display:flex; flex-direction:column; align-items:center; width:260px; }
+  .screen-number { font-weight:bold; font-size:12px; margin-bottom:8px; text-align:center; }
+
+  /* ---- Phone frame ---- */
+  .phone {
+    width:260px;
+    min-height:500px;
+    border:3px solid #000;
+    border-radius:22px;
+    background:#fff;
+    padding:14px 12px 12px;
+    position:relative;
+    font-size:10.5px;
+  }
+  .notch { width:60px; height:8px; background:#000; border-radius:4px; margin:0 auto 10px; }
+
+  .screen-header { display:flex; align-items:center; justify-content:center; position:relative; border-bottom:1px solid #000; padding-bottom:7px; margin-bottom:10px; }
+  .screen-header .back { position:absolute; left:0; font-size:13px; }
+  .screen-header .title { font-weight:bold; font-size:12.5px; text-align:center; width:100%; }
+  .screen-header .bell { position:absolute; right:0; width:14px; height:14px; border:1px solid #000; border-radius:2px; }
+
+  .wf-label { display:block; font-size:8.5px; text-transform:uppercase; color:#555; margin-bottom:2px; letter-spacing:.5px; }
+  .wf-input { border:1px solid #000; border-radius:3px; padding:6px 7px; margin-bottom:8px; font-size:9.5px; color:#999; }
+  .wf-select { border:1px solid #000; border-radius:3px; padding:6px 7px; margin-bottom:8px; font-size:9.5px; color:#999; display:flex; justify-content:space-between; }
+  .wf-btn { border:1.5px solid #000; text-align:center; padding:9px; margin-bottom:8px; font-size:10.5px; font-weight:bold; border-radius:4px; background:#000; color:#fff; }
+  .wf-btn-outline { border:1.5px solid #000; text-align:center; padding:9px; margin-bottom:8px; font-size:10.5px; font-weight:bold; border-radius:4px; background:#fff; color:#000; }
+  .wf-link { text-align:center; font-size:9.5px; text-decoration:underline; margin-bottom:6px; color:#333; }
+  .wf-box { border:1px solid #000; border-radius:4px; padding:8px; margin-bottom:8px; }
+  .wf-box-dashed { border:1px dashed #999; border-radius:4px; padding:8px; margin-bottom:8px; font-size:9px; color:#777; }
+  .wf-row { display:flex; justify-content:space-between; align-items:center; }
+  .wf-big-num { font-size:16px; font-weight:bold; }
+  .wf-small { font-size:8.5px; color:#666; }
+  .wf-icon-sq { width:36px; height:36px; border:1px solid #000; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:7px; margin:0 auto 8px; }
+  .wf-otp-row { display:flex; gap:6px; justify-content:center; margin-bottom:10px; }
+  .wf-otp-box { width:26px; height:30px; border:1px solid #000; border-radius:3px; }
+  .wf-graph { border:1px solid #000; border-radius:4px; height:70px; display:flex; align-items:flex-end; gap:4px; padding:6px; margin-bottom:6px; }
+  .wf-bar { background:#aaa; flex:1; }
+  .wf-progress-outer { border:1px solid #000; border-radius:8px; height:12px; margin-bottom:6px; overflow:hidden; }
+  .wf-progress-fill { background:#999; height:100%; }
+  .wf-list-item { border-bottom:1px solid #ddd; padding:6px 0; font-size:9.5px; display:flex; justify-content:space-between; }
+  .wf-list-item .l1 { }
+  .wf-list-item .l2 { color:#666; font-size:8.5px; }
+  .wf-tabs { display:flex; gap:4px; margin-bottom:8px; }
+  .wf-tab { border:1px solid #000; border-radius:10px; padding:3px 8px; font-size:8.5px; }
+  .wf-tab-active { background:#000; color:#fff; }
+  .wf-annot { font-size:8px; font-style:italic; border:1px dashed #999; border-radius:3px; padding:4px 6px; margin-bottom:8px; color:#555; }
+  .wf-nav { display:flex; justify-content:space-between; border-top:1px solid #000; margin-top:auto; padding-top:8px; position:absolute; bottom:12px; left:12px; right:12px; }
+  .wf-nav-item { text-align:center; font-size:7px; flex:1; }
+  .wf-nav-icon { width:14px; height:14px; border:1px solid #000; margin:0 auto 2px; border-radius:3px; }
+  .wf-nav-active { font-weight:bold; }
+  .wf-nav-active .wf-nav-icon { background:#000; }
+  .phone-tall { min-height:540px; }
+  .spacer { height:44px; }
+  .avatar-circle { width:44px; height:44px; border:1px solid #000; border-radius:50%; margin:0 auto 8px; }
+  .checkmark-circle { width:44px; height:44px; border:2px solid #000; border-radius:50%; margin:14px auto 10px; display:flex; align-items:center; justify-content:center; font-size:20px; }
+  .settings-row { border-bottom:1px solid #ddd; padding:8px 2px; font-size:9.5px; display:flex; justify-content:space-between; }
+</style>
+</head>
+<body>
+
+<div class="page-title">Q-CASH — Low-Fidelity Wireframes</div>
+<div class="page-sub">Mobile UX Prototype · Grayscale wireframe set for early-stage UX planning (Flutter app + USSD alt. channel)</div>
+
+<!-- PRIMARY FLOW -->
+<div class="flow-wrap">
+  <div class="flow-title">Primary User Journey</div>
+  <div class="flow-diagram">
+    <div class="flow-node">1. Registration</div><span class="flow-arrow">→</span>
+    <div class="flow-node">3. OTP Verification</div><span class="flow-arrow">→</span>
+    <div class="flow-node">5. Business Setup</div><span class="flow-arrow">→</span>
+    <div class="flow-node">6. M-Pesa Connection</div><span class="flow-arrow">→</span>
+    <div class="flow-node">7. Dashboard</div><span class="flow-arrow">→</span>
+    <div class="flow-node">8. Revenue Prediction</div><span class="flow-arrow">→</span>
+    <div class="flow-node">9. Access Revenue</div><span class="flow-arrow">→</span>
+    <div class="flow-node">10. Confirmation</div><span class="flow-arrow">→</span>
+    <div class="flow-node">11. Access Successful</div><span class="flow-arrow">→</span>
+    <div class="flow-node">14. Repayment</div><span class="flow-arrow">→</span>
+    <div class="flow-node">12. Transaction History</div>
+  </div>
+  <div class="flow-title">Secondary Flows</div>
+  <div class="flow-diagram">
+    <div class="flow-node">7. Dashboard</div><span class="flow-arrow">→</span>
+    <div class="flow-node">12. Transactions</div><span class="flow-arrow">→</span>
+    <div class="flow-node">13. Transaction Details</div>
+  </div>
+  <div class="flow-diagram">
+    <div class="flow-node">7. Dashboard</div><span class="flow-arrow">→</span>
+    <div class="flow-node">14. Repayment</div><span class="flow-arrow">→</span>
+    <div class="flow-node">15. Repayment Details</div>
+  </div>
+  <div class="flow-diagram">
+    <div class="flow-node">7. Dashboard</div><span class="flow-arrow">→</span>
+    <div class="flow-node">17. Profile</div><span class="flow-arrow">→</span>
+    <div class="flow-node">18. Settings</div>
+  </div>
+</div>
+
+<!-- ===================== AUTHENTICATION ===================== -->
+<div class="group-section">
+  <div class="group-title">A. Authentication</div>
+  <div class="screens-grid">
+
+    <!-- Screen 1: Welcome -->
+    <div class="screen-block">
+      <div class="screen-number">Screen 1 — Welcome</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="spacer"></div>
+        <div class="wf-box" style="text-align:center; padding:18px 8px;">[Q-CASH LOGO]</div>
+        <div class="wf-box-dashed" style="text-align:center;">
+          Zero-interest early access to your business revenue, powered by your M-Pesa transaction data.
+        </div>
+        <div class="spacer"></div>
+        <div class="wf-btn">Get Started</div>
+        <div class="wf-btn-outline">Log In</div>
+      </div>
+    </div>
+
+    <!-- Screen 2: Registration -->
+    <div class="screen-block">
+      <div class="screen-number">Screen 2 — Registration</div>
+      <div class="phone phone-tall">
+        <div class="notch"></div>
+        <div class="screen-header"><span class="back">←</span><span class="title">Create Account</span></div>
+        <span class="wf-label">Full Name</span>
+        <div class="wf-input">___________________</div>
+        <span class="wf-label">Phone Number</span>
+        <div class="wf-input">+254 ______________</div>
+        <span class="wf-label">Email</span>
+        <div class="wf-input">___________________</div>
+        <span class="wf-label">ID Number</span>
+        <div class="wf-input">___________________</div>
+        <span class="wf-label">Password</span>
+        <div class="wf-input">••••••••</div>
+        <span class="wf-label">Confirm Password</span>
+        <div class="wf-input">••••••••</div>
+        <div class="wf-btn">Create Account</div>
+        <div class="wf-link">Already have an account? Log In</div>
+      </div>
+    </div>
+
+    <!-- Screen 3: OTP -->
+    <div class="screen-block">
+      <div class="screen-number">Screen 3 — OTP Verification</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen-header"><span class="back">←</span><span class="title">OTP Verification</span></div>
+        <div class="wf-box-dashed" style="text-align:center;">Code sent to +254 7XX XXX XXX</div>
+        <span class="wf-label" style="text-align:center; display:block;">Enter OTP</span>
+        <div class="wf-otp-row">
+          <div class="wf-otp-box"></div><div class="wf-otp-box"></div><div class="wf-otp-box"></div>
+          <div class="wf-otp-box"></div><div class="wf-otp-box"></div><div class="wf-otp-box"></div>
+        </div>
+        <div class="wf-link">Resend OTP</div>
+        <div class="wf-btn">Verify</div>
+      </div>
+    </div>
+
+    <!-- Screen 4: Login -->
+    <div class="screen-block">
+      <div class="screen-number">Screen 4 — Login</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen-header"><span class="back">←</span><span class="title">Log In</span></div>
+        <span class="wf-label">Phone Number</span>
+        <div class="wf-input">+254 ______________</div>
+        <span class="wf-label">Password</span>
+        <div class="wf-input">••••••••</div>
+        <div class="wf-link" style="text-align:right;">Forgot Password?</div>
+        <div class="wf-btn">Log In</div>
+        <div class="wf-link">Don't have an account? Register</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===================== BUSINESS ONBOARDING ===================== -->
+<div class="group-section">
+  <div class="group-title">B. Business Onboarding</div>
+  <div class="screens-grid">
+
+    <!-- Screen 5: Business Registration -->
+    <div class="screen-block">
+      <div class="screen-number">Screen 5 — Business Registration</div>
+      <div class="phone phone-tall">
+        <div class="notch"></div>
+        <div class="screen-header"><span class="back">←</span><span class="title">Business Details</span></div>
+        <span class="wf-label">Business Name</span>
+        <div class="wf-input">___________________</div>
+        <span class="wf-label">Business Type</span>
+        <div class="wf-select">Select type <span>▾</span></div>
+        <span class="wf-label">Business Location</span>
+        <div class="wf-input">___________________</div>
+        <span class="wf-label">Registration Number (optional)</span>
+        <div class="wf-input">___________________</div>
+        <span class="wf-label">Business Category</span>
+        <div class="wf-select">Select category <span>▾</span></div>
+        <div class="wf-btn">Continue</div>
+      </div>
+    </div>
+
+    <!-- Screen 6: M-Pesa Connection -->
+    <div class="screen-block">
+      <div class="screen-number">Screen 6 — M-Pesa / Paybill Connection</div>
+      <div class="phone phone-tall">
+        <div class="notch"></div>
+        <div class="screen-header"><span class="back">←</span><span class="title">Connect M-Pesa</span></div>
+        <div class="wf-annot">[M-PESA TRANSACTION DATA] — Q-Cash reads your Paybill transaction history to assess business revenue and eligibility.</div>
+        <span class="wf-label">Paybill Number</span>
+        <div class="wf-input">___________________</div>
+        <span class="wf-label">Business / Account Number</span>
+        <div class="wf-input">___________________</div>
+        <div class="wf-box wf-row">
+          <span class="wf-small">Connection Status</span>
+          <span class="wf-small">○ Not Connected</span>
+        </div>
+        <div class="wf-btn-outline">Connect Account</div>
+        <div class="wf-btn">Continue</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===================== CORE APPLICATION ===================== -->
+<div class="group-section">
+  <div class="group-title">C. Core Application</div>
+  <div class="screens-grid">
+
+    <!-- Screen 7: Dashboard -->
+    <div class="screen-block">
+      <div class="screen-number">Screen 7 — Home Dashboard</div>
+      <div class="phone phone-tall">
+        <div class="notch"></div>
+        <div class="screen-header"><span class="title">Hi, [Business Name]</span><span class="bell"></span></div>
+        <div class="wf-box">
+          <span class="wf-label">Available Early Access</span>
+          <div class="wf-big-num">KES 00,000</div>
+        </div>
+        <div class="wf-row" style="gap:8px;">
+          <div class="wf-box" style="flex:1;"><span class="wf-label">Predicted Revenue</span><span class="wf-small">KES 00,000</span></div>
+          <div class="wf-box" style="flex:1;"><span class="wf-label">Current Revenue</span><span class="wf-small">KES 00,000</span></div>
+        </div>
+        <div class="wf-row" style="gap:8px;">
+          <div class="wf-box" style="flex:1;"><span class="wf-label">Accessed</span><span class="wf-small">KES 00,000</span></div>
+          <div class="wf-box" style="flex:1;"><span class="wf-label">Outstanding</span><span class="wf-small">KES 00,000</span></div>
+        </div>
+        <div class="wf-btn" style="text-align:center;">Access Revenue</div>
+        <span class="wf-label">Recent Transactions</span>
+        <div class="wf-list-item"><span class="l1">Paybill Deposit</span><span class="l2">+KES 3,200</span></div>
+        <div class="wf-list-item"><span class="l1">Early Access</span><span class="l2">-KES 5,000</span></div>
+        <div class="wf-list-item"><span class="l1">Repayment</span><span class="l2">-KES 1,000</span></div>
+        <div class="wf-nav">
+          <div class="wf-nav-item wf-nav-active"><div class="wf-nav-icon"></div>Home</div>
+          <div class="wf-nav-item"><div class="wf-nav-icon"></div>Transactions</div>
+          <div class="wf-nav-item"><div class="wf-nav-icon"></div>Access</div>
+          <div class="wf-nav-item"><div class="wf-nav-icon"></div>Repayment</div>
+          <div class="wf-nav-item"><div class="wf-nav-icon"></div>Profile</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 8: Revenue Overview -->
+    <div class="screen-block">
+      <div class="screen-number">Screen 8 — Revenue Overview</div>
+      <div class="phone phone-tall">
+        <div class="notch"></div>
+        <div class="screen-header"><span class="back">←</span><span class="title">Revenue Overview</span></div>
+        <div class="wf-annot">[ML REVENUE PREDICTION] — estimate generated from Paybill transaction patterns</div>
+        <div class="wf-row" style="gap:8px;">
+          <div class="wf-box" style="flex:1;"><span class="wf-label">Current Revenue</span><span class="wf-small">KES 00,000</span></div>
+          <div class="wf-box" style="flex:1;"><span class="wf-label">Predicted Monthly Revenue</span><span class="wf-small">KES 00,000</span></div>
+        </div>
+        <span class="wf-label">Revenue Trend [GRAPH]</span>
+        <div class="wf-graph">
+          <div class="wf-bar" style="height:40%;"></div>
+          <div class="wf-bar" style="height:60%;"></div>
+          <div class="wf-bar" style="height:35%;"></div>
+          <div class="wf-bar" style="height:75%;"></div>
+          <div class="wf-bar" style="height:55%;"></div>
+          <div class="wf-bar" style="height:90%;"></div>
+        </div>
+        <span class="wf-label">Historical Revenue</span>
+        <div class="wf-list-item"><span class="l1">June</span><span class="l2">KES 00,000</span></div>
+        <div class="wf-list-item"><span class="l1">July</span><span class="l2">KES 00,000</span></div>
+        <div class="wf-list-item"><span class="l1">August</span><span class="l2">KES 00,000</span></div>
+        <div class="wf-box" style="margin-top:8px;">
+          <span class="wf-label">Eligible Early Access</span>
+          <div class="wf-big-num">KES 00,000</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 9: Access Revenue -->
+    <div class="screen-block">
+      <div class="screen-number">Screen 9 — Access Revenue</div>
+      <div class="phone phone-tall">
+        <div class="notch"></div>
+        <div class="screen-header"><span class="back">←</span><span class="title">Access Revenue</span></div>
+        <div class="wf-box">
+          <span class="wf-label">Maximum Available</span>
+          <div class="wf-big-num">KES 00,000</div>
+        </div>
+        <span class="wf-label">Amount to Access</span>
+        <div class="wf-input" style="text-align:center; font-size:14px;">KES 5,000</div>
+        <div class="wf-box" style="padding:14px 10px;">
+          <div style="border:1px solid #000; height:3px; position:relative;">
+            <div style="width:14px; height:14px; border:2px solid #000; border-radius:50%; background:#fff; position:absolute; left:40%; top:-6px;"></div>
+          </div>
+          <div class="wf-row wf-small" style="margin-top:6px;"><span>KES 0</span><span>KES Max</span></div>
+        </div>
+        <div class="wf-annot" style="text-align:center;">⚡ Zero-Interest — No Access Fee</div>
+        <div class="wf-list-item"><span class="l1">Amount Received</span><span class="l2">KES 5,000</span></div>
+        <div class="wf-list-item"><span class="l1">Expected Repayment</span><span class="l2">KES 5,000</span></div>
+        <div class="wf-btn">Continue</div>
+      </div>
+    </div>
+
+    <!-- Screen 10: Access Confirmation -->
+    <div class="screen-block">
+      <div class="screen-number">Screen 10 — Access Confirmation</div>
+      <div class="phone phone-tall">
+        <div class="notch"></div>
+        <div class="screen-header"><span class="back">←</span><span class="title">Confirm Access</span></div>
+        <div class="wf-box">
+          <div class="wf-list-item"><span class="l1">Requested Amount</span><span class="l2">KES 5,000</span></div>
+          <div class="wf-list-item"><span class="l1">Processing Fee</span><span class="l2">KES 0</span></div>
+          <div class="wf-list-item"><span class="l1">Total Received</span><span class="l2">KES 5,000</span></div>
+          <div class="wf-list-item"><span class="l1">Repayment Amount</span><span class="l2">KES 5,000</span></div>
+          <div class="wf-list-item"><span class="l1">Repayment Date</span><span class="l2">30 Sep 2026</span></div>
+        </div>
+        <div class="wf-annot" style="text-align:center;">Repayment is deducted automatically from future Paybill transactions</div>
+        <div class="wf-btn">Confirm Access</div>
+        <div class="wf-btn-outline">Cancel</div>
+      </div>
+    </div>
+
+    <!-- Screen 11: Access Successful -->
+    <div class="screen-block">
+      <div class="screen-number">Screen 11 — Access Successful</div>
+      <div class="phone phone-tall">
+        <div class="notch"></div>
+        <div class="checkmark-circle">✓</div>
+        <div style="text-align:center; font-weight:bold; margin-bottom:10px;">Access Successful</div>
+        <div class="wf-box">
+          <div class="wf-list-item"><span class="l1">Amount Accessed</span><span class="l2">KES 5,000</span></div>
+          <div class="wf-list-item"><span class="l1">Transaction Ref</span><span class="l2">QC-00291</span></div>
+          <div class="wf-list-item"><span class="l1">Date</span><span class="l2">3 Sep 2026</span></div>
+          <div class="wf-list-item"><span class="l1">Updated Available Balance</span><span class="l2">KES 00,000</span></div>
+        </div>
+        <div class="wf-btn-outline">View Details</div>
+        <div class="wf-btn">Back to Dashboard</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===================== FINANCIAL MANAGEMENT ===================== -->
+<div class="group-section">
+  <div class="group-title">D. Financial Management</div>
+  <div class="screens-grid">
+
+    <!-- Screen 12: Transaction History -->
+    <div class="screen-block">
+      <div class="screen-number">Screen 12 — Transaction History</div>
+      <div class="phone phone-tall">
+        <div class="notch"></div>
+        <div class="screen-header"><span class="title">Transactions</span></div>
+        <div class="wf-tabs">
+          <div class="wf-tab wf-tab-active">All</div>
+          <div class="wf-tab">Income</div>
+          <div class="wf-tab">Access</div>
+          <div class="wf-tab">Repayment</div>
+        </div>
+        <div class="wf-list-item"><span class="l1">Paybill Deposit<br><span class="l2">3 Sep 2026</span></span><span class="l2">+KES 3,200</span></div>
+        <div class="wf-list-item"><span class="l1">Early Access<br><span class="l2">2 Sep 2026</span></span><span class="l2">-KES 5,000</span></div>
+        <div class="wf-list-item"><span class="l1">Repayment<br><span class="l2">1 Sep 2026</span></span><span class="l2">-KES 1,000</span></div>
+        <div class="wf-list-item"><span class="l1">Paybill Deposit<br><span class="l2">30 Aug 2026</span></span><span class="l2">+KES 2,800</span></div>
+        <div class="wf-nav">
+          <div class="wf-nav-item"><div class="wf-nav-icon"></div>Home</div>
+          <div class="wf-nav-item wf-nav-active"><div class="wf-nav-icon"></div>Transactions</div>
+          <div class="wf-nav-item"><div class="wf-nav-icon"></div>Access</div>
+          <div class="wf-nav-item"><div class="wf-nav-icon"></div>Repayment</div>
+          <div class="wf-nav-item"><div class="wf-nav-icon"></div>Profile</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 13: Transaction Details -->
+    <div class="screen-block">
+      <div class="screen-number">Screen 13 — Transaction Details</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen-header"><span class="back">←</span><span class="title">Transaction Details</span></div>
+        <div class="wf-box">
+          <div class="wf-list-item"><span class="l1">Reference</span><span class="l2">QC-00291</span></div>
+          <div class="wf-list-item"><span class="l1">Date / Time</span><span class="l2">3 Sep, 10:42</span></div>
+          <div class="wf-list-item"><span class="l1">Amount</span><span class="l2">KES 5,000</span></div>
+          <div class="wf-list-item"><span class="l1">Type</span><span class="l2">Early Access</span></div>
+          <div class="wf-list-item"><span class="l1">Status</span><span class="l2">Completed</span></div>
+          <div class="wf-list-item"><span class="l1">Related Account</span><span class="l2">Paybill 4521</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 14: Repayment Overview -->
+    <div class="screen-block">
+      <div class="screen-number">Screen 14 — Repayment Overview</div>
+      <div class="phone phone-tall">
+        <div class="notch"></div>
+        <div class="screen-header"><span class="title">Repayment</span></div>
+        <div class="wf-row" style="gap:8px;">
+          <div class="wf-box" style="flex:1;"><span class="wf-label">Outstanding</span><span class="wf-small">KES 4,000</span></div>
+          <div class="wf-box" style="flex:1;"><span class="wf-label">Repaid</span><span class="wf-small">KES 1,000</span></div>
+        </div>
+        <span class="wf-label">[REPAYMENT PROGRESS]</span>
+        <div class="wf-progress-outer"><div class="wf-progress-fill" style="width:25%;"></div></div>
+        <div class="wf-small" style="margin-bottom:8px;">25% repaid</div>
+        <div class="wf-box"><span class="wf-label">Next Expected Repayment</span><span class="wf-small">KES 500 — 10 Sep 2026</span></div>
+        <span class="wf-label">Repayment History</span>
+        <div class="wf-list-item"><span class="l1">1 Sep 2026</span><span class="l2">KES 1,000</span></div>
+        <div class="wf-nav">
+          <div class="wf-nav-item"><div class="wf-nav-icon"></div>Home</div>
+          <div class="wf-nav-item"><div class="wf-nav-icon"></div>Transactions</div>
+          <div class="wf-nav-item"><div class="wf-nav-icon"></div>Access</div>
+          <div class="wf-nav-item wf-nav-active"><div class="wf-nav-icon"></div>Repayment</div>
+          <div class="wf-nav-item"><div class="wf-nav-icon"></div>Profile</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 15: Repayment Details -->
+    <div class="screen-block">
+      <div class="screen-number">Screen 15 — Repayment Details</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen-header"><span class="back">←</span><span class="title">Repayment Details</span></div>
+        <div class="wf-box">
+          <div class="wf-list-item"><span class="l1">Original Amount</span><span class="l2">KES 5,000</span></div>
+          <div class="wf-list-item"><span class="l1">Amount Repaid</span><span class="l2">KES 1,000</span></div>
+          <div class="wf-list-item"><span class="l1">Remaining</span><span class="l2">KES 4,000</span></div>
+          <div class="wf-list-item"><span class="l1">Status</span><span class="l2">In Progress</span></div>
+        </div>
+        <span class="wf-label">Repayment Transactions</span>
+        <div class="wf-list-item"><span class="l1">1 Sep 2026</span><span class="l2">KES 1,000</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===================== ACCOUNT MANAGEMENT ===================== -->
+<div class="group-section">
+  <div class="group-title">E. Account Management</div>
+  <div class="screens-grid">
+
+    <!-- Screen 16: Notifications -->
+    <div class="screen-block">
+      <div class="screen-number">Screen 16 — Notifications</div>
+      <div class="phone phone-tall">
+        <div class="notch"></div>
+        <div class="screen-header"><span class="back">←</span><span class="title">Notifications</span></div>
+        <div class="wf-list-item"><span class="l1">[ICON] Revenue prediction updated<br><span class="l2">2h ago</span></span></div>
+        <div class="wf-list-item"><span class="l1">[ICON] Early access approved<br><span class="l2">1d ago</span></span></div>
+        <div class="wf-list-item"><span class="l1">[ICON] Early access received<br><span class="l2">1d ago</span></span></div>
+        <div class="wf-list-item"><span class="l1">[ICON] Repayment recorded<br><span class="l2">3d ago</span></span></div>
+        <div class="wf-list-item"><span class="l1">[ICON] Account connection issue<br><span class="l2">5d ago</span></span></div>
+      </div>
+    </div>
+
+    <!-- Screen 17: Profile -->
+    <div class="screen-block">
+      <div class="screen-number">Screen 17 — Profile</div>
+      <div class="phone phone-tall">
+        <div class="notch"></div>
+        <div class="screen-header"><span class="title">Profile</span></div>
+        <div class="avatar-circle"></div>
+        <div class="wf-box">
+          <div class="wf-list-item"><span class="l1">Name</span><span class="l2">[User Name]</span></div>
+          <div class="wf-list-item"><span class="l1">Phone</span><span class="l2">+254 7XX XXX XXX</span></div>
+          <div class="wf-list-item"><span class="l1">Email</span><span class="l2">user@email.com</span></div>
+          <div class="wf-list-item"><span class="l1">Business Name</span><span class="l2">[Business]</span></div>
+          <div class="wf-list-item"><span class="l1">Business Info</span><span class="l2">Retail / Nairobi</span></div>
+          <div class="wf-list-item"><span class="l1">Account Status</span><span class="l2">Active</span></div>
+        </div>
+        <div class="wf-nav">
+          <div class="wf-nav-item"><div class="wf-nav-icon"></div>Home</div>
+          <div class="wf-nav-item"><div class="wf-nav-icon"></div>Transactions</div>
+          <div class="wf-nav-item"><div class="wf-nav-icon"></div>Access</div>
+          <div class="wf-nav-item"><div class="wf-nav-icon"></div>Repayment</div>
+          <div class="wf-nav-item wf-nav-active"><div class="wf-nav-icon"></div>Profile</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 18: Settings -->
+    <div class="screen-block">
+      <div class="screen-number">Screen 18 — Settings</div>
+      <div class="phone phone-tall">
+        <div class="notch"></div>
+        <div class="screen-header"><span class="back">←</span><span class="title">Settings</span></div>
+        <div class="settings-row"><span>Personal Information</span><span>›</span></div>
+        <div class="settings-row"><span>Business Information</span><span>›</span></div>
+        <div class="settings-row"><span>M-Pesa Account</span><span>›</span></div>
+        <div class="settings-row"><span>Security</span><span>›</span></div>
+        <div class="settings-row"><span>Notifications</span><span>›</span></div>
+        <div class="settings-row"><span>Help & Support</span><span>›</span></div>
+        <div class="settings-row"><span>Logout</span><span>›</span></div>
+      </div>
+    </div>
+
+    <!-- Screen 19: Help & Support -->
+    <div class="screen-block">
+      <div class="screen-number">Screen 19 — Help & Support</div>
+      <div class="phone phone-tall">
+        <div class="notch"></div>
+        <div class="screen-header"><span class="back">←</span><span class="title">Help & Support</span></div>
+        <div class="wf-input">🔍 Search FAQs</div>
+        <span class="wf-label">Frequently Asked Questions</span>
+        <div class="settings-row"><span>How Q-Cash Works</span><span>›</span></div>
+        <div class="settings-row"><span>How Early Revenue Access Works</span><span>›</span></div>
+        <div class="settings-row"><span>Repayment Information</span><span>›</span></div>
+        <div class="settings-row"><span>M-Pesa Connection Help</span><span>›</span></div>
+        <div class="wf-btn" style="margin-top:10px;">Contact Support</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

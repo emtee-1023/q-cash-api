@@ -1,58 +1,175 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
-
 <p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+  <img src="design/qcash-logo/png/qcash-logo-on-light.png" width="300" alt="QCash">
 </p>
 
-## About Laravel
+<h1 align="center">QCash Backend</h1>
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+<p align="center">
+  Early Revenue Access (ERA) API for Kenyan MSMEs — businesses, payments, assessments,
+  cash advances, repayments, wallets, notifications and USSD.
+</p>
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+<p align="center">
+  <img src="https://img.shields.io/badge/PHP-8.3-777BB4?logo=php&logoColor=white" alt="PHP 8.3">
+  <img src="https://img.shields.io/badge/Laravel-13-FF2D20?logo=laravel&logoColor=white" alt="Laravel 13">
+  <img src="https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL">
+  <img src="https://img.shields.io/badge/Pest-4-000000?logo=pestphp&logoColor=white" alt="Pest 4">
+</p>
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## API Platform
 
-## Learning Laravel
+The API reference is generated with [Scramble](https://scramble.dedoc.co) and served locally at
+[`/docs/api`](http://localhost:8000/docs/api). The raw OpenAPI document is available at
+[`/docs/api.json`](http://localhost:8000/docs/api.json).
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+<p align="center">
+  <img src="design/screenshot.png" alt="QCash API documentation" width="100%">
+</p>
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+### Accessing the docs
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+php artisan serve
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Then open **http://localhost:8000/docs/api**. The docs are restricted outside local/development
+environments; see `config/scramble.php` for the middleware and branding options.
 
-## Contributing
+## What this app does
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- Business onboarding, members, invitations, locations and KYC status
+- Payment account and raw transaction ingestion
+- Transaction classification and business analytics
+- ERA assessments via the Python ML decision API
+- Advance offers, approval, wallet disbursement and exposure controls
+- Hybrid repayments: automatic revenue deductions, QCash wallet and M-Pesa STK
+- Business wallet, withdrawals and M-Pesa B2C reconciliation
+- SMS and in-app notifications
+- Africa's Talking USSD for owners (collect payment, check/borrow advance, withdraw)
+- M-Pesa webhooks for C2B, STK push and B2C
 
-## Code of Conduct
+## Tech stack
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- PHP 8.3 / Laravel 13
+- PostgreSQL (SQLite for tests)
+- Laravel Sanctum for API tokens
+- Scramble for OpenAPI documentation
+- Pest for testing, Pint for formatting
+- Docker support
 
-## Security Vulnerabilities
+## Getting started
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Requirements
 
-## License
+- PHP 8.3+
+- Composer
+- PostgreSQL
+- Node.js and npm (only if you work on the welcome page/assets)
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Install
+
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+```
+
+Configure the database and integrations in `.env`, then:
+
+```bash
+php artisan migrate --seed
+php artisan serve
+```
+
+The seeder creates demo businesses, users, transactions, assessments and advances.
+
+### Environment highlights
+
+| Variable | Purpose |
+|---|---|
+| `APP_URL` | Base URL used to derive webhook callbacks |
+| `DB_*` | PostgreSQL connection |
+| `MPESA_*` | Daraja C2B, STK push and B2C credentials |
+| `AFRICASTALKING_*` | SMS and USSD channel settings |
+| `QCASH_ML_API_URL` | Python ERA assessment service |
+| `ACCESS_FEE_BPS` | Access fee on borrowing (default `200` = 2%) |
+| `REPAYMENT_MAXIMUM_DAYS` | Repayment window (default `30` days) |
+| `REPAYMENT_DAILY_CAP_MINOR` | Automatic deduction daily cap |
+
+See `.env.example` for the complete list. For local webhooks and USSD, expose the app with
+ngrok/cloudflared and set `APP_URL` to the public HTTPS URL.
+
+## Authentication
+
+```text
+POST /api/auth/register        Create an account by phone number
+POST /api/auth/verify-phone    Verify the OTP and receive a Sanctum token
+```
+
+Send the token on protected routes:
+
+```http
+Authorization: Bearer <token>
+Accept: application/json
+```
+
+Admin endpoints live under `/api/admin/*` and require an activated admin account.
+
+## Core API areas
+
+| Area | Examples |
+|---|---|
+| Auth & profile | `/api/auth/*`, `/api/user` |
+| Businesses | `/api/businesses`, members, invitations, payment accounts |
+| Transactions | `/api/businesses/{business}/transactions`, analytics |
+| Assessments | `/api/businesses/{business}/assessments` |
+| Advances | `/api/businesses/{business}/offers`, `/api/offers/{offer}/accept`, `/api/advances/*` |
+| Wallet | `/api/businesses/{business}/wallet`, `/withdrawals` |
+| Repayments | `/api/businesses/{business}/repayments`, `/wallet`, `/mpesa` |
+| Notifications | `/api/notifications` |
+| Locations | `/api/locations/*` |
+| Webhooks | `/api/webhooks/*` (M-Pesa C2B, STK, B2C) |
+| USSD | `/api/webhooks/ussd` (Africa's Talking callback) |
+
+## Domain rules
+
+- All monetary values are integer **minor units** (KES cents). Rates are integer **basis points**.
+- Borrowing charges a **2% access fee**: the wallet receives `requested − fee`, and the borrower
+  repays the full requested amount.
+- New advances run for a maximum of **30 days**.
+- The exposure cap is the assessment's approved advance amount; available borrowing is
+  `approved amount − outstanding committed exposure`. Pending, approved, disbursing, active and
+  overdue advances all count.
+- Automatic repayment collects a percentage of eligible inflow receipts, subject to a daily cap
+  and a working-capital floor, and repays the fee before principal.
+- Advance disbursements are credited directly to the business QCash wallet.
+
+## Testing and formatting
+
+```bash
+php artisan test --compact
+vendor/bin/pint --dirty --format agent
+```
+
+Tests use an in-memory SQLite database. Feature tests cover authentication, businesses,
+transactions, assessments, offers, disbursements, repayments, exposure, notifications, webhooks
+and USSD.
+
+## Docker
+
+Deployment files and instructions live in `Dockerfile`, `compose.yml`, `compose.prod.yml` and
+`DOCKER_DEPLOYMENT.md`.
+
+## Project structure
+
+```text
+app/
+  Http/Controllers/   API, admin and webhook controllers
+  Models/             Eloquent models
+  Services/           Domain services (advances, repayments, wallets, USSD, M-Pesa, ...)
+  Notifications/      In-app notifications
+config/               App, services and repayment configuration
+database/             Migrations, factories and seeders
+routes/api.php        API and webhook routes
+tests/Feature/        Feature tests
+```
